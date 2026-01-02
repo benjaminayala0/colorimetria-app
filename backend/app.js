@@ -6,12 +6,19 @@ const sequelize = require('./database/db');
 const Client = require('./models/Client');
 const TechnicalSheet = require('./models/TechnicalSheet');
 
+// Import Routes
+const clientRoutes = require('./routes/clientRoutes');
+
+// Initialize Express App
 const app = express();
 const PORT = 3000;
 
 // Middlewares
 app.use(cors());
 app.use(express.json());
+
+// Use Routes
+app.use('/api/clients', clientRoutes);
 
 // --- DEFINING RELATIONS (Associations) ---
 // One Client has many Technical Sheets

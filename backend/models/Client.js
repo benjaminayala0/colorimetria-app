@@ -18,10 +18,6 @@ const Client = sequelize.define('Client', {
     allergies: { 
         type: DataTypes.TEXT,
         allowNull: true
-    },
-    createdate: {
-        type: DataTypes.DATEONLY,
-        defaultValue: DataTypes.NOW
     }
 });
 
