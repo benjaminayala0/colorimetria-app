@@ -8,6 +8,7 @@ const TechnicalSheet = require('./models/TechnicalSheet');
 
 // Import Routes
 const clientRoutes = require('./routes/clientRoutes');
+const technicalSheetRoutes = require('./routes/technicalSheetRoutes');
 
 // Initialize Express App
 const app = express();
@@ -19,6 +20,7 @@ app.use(express.json());
 
 // Use Routes
 app.use('/api/clients', clientRoutes);
+app.use('/api/sheets', technicalSheetRoutes);
 
 // --- DEFINING RELATIONS (Associations) ---
 // One Client has many Technical Sheets

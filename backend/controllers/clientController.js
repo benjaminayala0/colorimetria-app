@@ -8,7 +8,7 @@ exports.createClient = async (req, res) => {
 
         // Validation: Name is mandatory
         if (!fullname) {
-            return res.status(400).json({ error: 'Full Name is required' });
+            return res.status(400).json({ error: 'El nombre completo es requerido' });
         }
 
         // Save to Database
@@ -20,13 +20,13 @@ exports.createClient = async (req, res) => {
 
         // Respond to the App
         res.status(201).json({
-            message: 'Client created successfully',
+            message: 'Cliente creado exitosamente',
             client: newClient
         });
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Server Error' });
+        res.status(500).json({ error: 'Error del servidor, intente más tarde' });
     }
 };
 
@@ -37,6 +37,6 @@ exports.getAllClients = async (req, res) => {
         res.status(200).json(clients);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Server Error' });
+        res.status(500).json({ error: 'Error del servidor, intente más tarde' });
     }
 };
