@@ -1,6 +1,7 @@
-import { StyleSheet, Text, View, FlatList, Platform, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Platform, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'expo-router'; 
 import api from '../../src/services/api'; 
 
 // Define the Client type
@@ -15,6 +16,7 @@ interface Client {
 export default function HomeScreen() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter(); 
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -55,15 +57,21 @@ export default function HomeScreen() {
           <Text style={styles.emptyText}>No hay clientas cargadas aún.</Text>
         }
         renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{item.fullname.charAt(0)}</Text>
+          <TouchableOpacity 
+            onPress={() => {
+              router.push(`/client/${item.id}` as any);
+            }}
+          >
+            <View style={styles.card}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{item.fullname.charAt(0)}</Text>
+              </View>
+              <View>
+                <Text style={styles.name}>{item.fullname}</Text>
+                <Text style={styles.phone}>{item.phone || 'Sin teléfono'}</Text>
+              </View>
             </View>
-            <View>
-              <Text style={styles.name}>{item.fullname}</Text>
-              <Text style={styles.phone}>{item.phone || 'Sin teléfono'}</Text>
-            </View>
-          </View>
+          </TouchableOpacity>
         )}
       />
     </SafeAreaView>
