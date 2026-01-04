@@ -1,5 +1,5 @@
 import { useLocalSearchParams, Stack } from 'expo-router';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
 import { useState, useEffect } from 'react';
 import api from '../../src/services/api';
 
@@ -17,23 +17,67 @@ export default function ClientDetailScreen() {
   const [sheets, setSheets] = useState<TechnicalSheet[]>([]);
   const [loading, setLoading] = useState(true);
 
- // Fetch technical sheets for the client when component mounts
-  useEffect(() => {
-    const fetchSheets = async () => {
-      try {
-        console.log(`Buscando fichas para cliente ${id}...`);
-      // Fetch sheets from backend
-        const response = await api.get(`/sheets/client/${id}`);
-        setSheets(response.data);
-      } catch (error) {
-        console.error("Error trayendo fichas:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // -- State for editing functionality --
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingSheet, setEditingSheet] = useState<TechnicalSheet | null>(null);
+  
+  // -- Temporary state for form inputs --
+  const [tempService, setTempService] = useState('');
+  const [tempFormula, setTempFormula] = useState('');
+  const [tempNotes, setTempNotes] = useState('');
+  const [tempDate, setTempDate] = useState('');
 
+  // Fetch technical sheets for the client when component mounts
+  const fetchSheets = async () => {
+    try {
+      console.log(`Buscando fichas para cliente ${id}...`);
+      // Fetch sheets from backend
+      const response = await api.get(`/sheets/client/${id}`);
+      setSheets(response.data);
+    } catch (error) {
+      console.error("Error trayendo fichas:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (id) fetchSheets();
   }, [id]);
+
+  // -- Handler to open the modal with selected sheet data --
+  const handleEditPress = (sheet: TechnicalSheet) => {
+    setEditingSheet(sheet);
+    setTempService(sheet.service);
+    setTempFormula(sheet.formula);
+    setTempNotes(sheet.notes || '');
+    setTempDate(sheet.date);
+    setModalVisible(true);
+  };
+
+  // -- Handler to submit updated data to the backend --
+  const handleSaveEdit = async () => {
+    if (!editingSheet) return;
+
+    try {
+      // Send PUT request to update the specific sheet
+      await api.put(`/sheets/${editingSheet.id}`, {
+        service: tempService,
+        formula: tempFormula,
+        notes: tempNotes,
+        date: tempDate,
+      });
+
+      // Close modal and refresh list
+      setModalVisible(false);
+      Alert.alert("Success", "Technical sheet updated successfully.");
+      fetchSheets(); 
+
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to update the technical sheet.");
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -47,7 +91,7 @@ export default function ClientDetailScreen() {
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={{ padding: 15 }}
           
-         // Show this when there are no technical sheets
+          // Show this when there are no technical sheets
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emoji}>📂</Text>
@@ -60,7 +104,15 @@ export default function ClientDetailScreen() {
             <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <Text style={styles.date}>{item.date}</Text>
-                <Text style={styles.serviceBadge}>{item.service}</Text>
+                
+                <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                  <Text style={styles.serviceBadge}>{item.service}</Text>
+                  
+                  {/* Edit button triggered by user interaction */}
+                  <TouchableOpacity onPress={() => handleEditPress(item)} style={styles.editButton}>
+                    <Text style={{fontSize: 18}}>✏️</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
               
               <Text style={styles.label}>Fórmula:</Text>
@@ -76,6 +128,54 @@ export default function ClientDetailScreen() {
           )}
         />
       )}
+
+      {/* -- Edit Modal Component -- */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Editar Ficha</Text>
+
+            <Text style={styles.inputLabel}>Servicio:</Text>
+            <TextInput style={styles.input} value={tempService} onChangeText={setTempService} />
+
+            <Text style={styles.inputLabel}>Fecha (YYYY-MM-DD):</Text>
+            <TextInput style={styles.input} value={tempDate} onChangeText={setTempDate} />
+
+            <Text style={styles.inputLabel}>Fórmula:</Text>
+            <TextInput 
+              style={[styles.input, styles.textArea]} 
+              value={tempFormula} 
+              onChangeText={setTempFormula} 
+              multiline 
+            />
+
+            <Text style={styles.inputLabel}>Notas:</Text>
+            <TextInput 
+              style={[styles.input, styles.textArea]} 
+              value={tempNotes} 
+              onChangeText={setTempNotes} 
+              multiline 
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => setModalVisible(false)}>
+                <Text style={styles.buttonText}>Cancelar</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={handleSaveEdit}>
+                <Text style={styles.buttonText}>Guardar</Text>
+              </TouchableOpacity>
+            </View>
+
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
@@ -134,6 +234,10 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     fontSize: 12,
     fontWeight: 'bold',
+    marginRight: 10, // Added margin for spacing with edit button
+  },
+  editButton: {
+    padding: 5,
   },
   label: {
     fontSize: 12,
@@ -151,5 +255,70 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#555',
     fontStyle: 'italic',
+  },
+  // -- Modal Styles --
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  inputLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 5,
+    fontWeight: 'bold',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 15,
+    fontSize: 16,
+  },
+  textArea: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  button: {
+    flex: 1,
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  cancelButton: {
+    backgroundColor: '#ccc',
+  },
+  saveButton: {
+    backgroundColor: '#6200ee',
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
