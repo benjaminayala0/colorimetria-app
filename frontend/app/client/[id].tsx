@@ -21,11 +21,10 @@ export default function ClientDetailScreen() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingSheet, setEditingSheet] = useState<TechnicalSheet | null>(null);
   
-  // -- State for CREATING functionality --
+  // -- State for CREATING functionality  --
   const [createModalVisible, setCreateModalVisible] = useState(false);
   
   // -- Form States (Shared for Create & Edit) --
-  // We can reuse these states, cleaning them up before opening modals
   const [tempService, setTempService] = useState('');
   const [tempFormula, setTempFormula] = useState('');
   const [tempNotes, setTempNotes] = useState('');
@@ -48,6 +47,31 @@ export default function ClientDetailScreen() {
   useEffect(() => {
     if (id) fetchSheets();
   }, [id]);
+
+  // --- DELETE HANDLER ---
+  const handleDeleteSheet = (sheetId: number) => {
+    Alert.alert(
+      "Eliminar Ficha",
+      "¿Estás seguro de que querés borrar esta ficha? No se puede recuperar.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { 
+          text: "Eliminar", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await api.delete(`/sheets/${sheetId}`);
+              Alert.alert("Eliminado", "La ficha se borró correctamente.");
+              fetchSheets(); 
+            } catch (error) {
+              console.error(error);
+              Alert.alert("Error", "No se pudo borrar la ficha.");
+            }
+          }
+        }
+      ]
+    );
+  };
 
   // --- EDIT HANDLERS ---
   const handleEditPress = (sheet: TechnicalSheet) => {
@@ -77,10 +101,9 @@ export default function ClientDetailScreen() {
     }
   };
 
-  // --- CREATE HANDLERS  ---
+  // --- CREATE HANDLERS ---
   const handleOpenCreate = () => {
-    // Clean form before opening
-    const today = new Date().toISOString().split('T')[0]; 
+    const today = new Date().toISOString().split('T')[0];
     setTempService('');
     setTempFormula('');
     setTempNotes('');
@@ -105,7 +128,7 @@ export default function ClientDetailScreen() {
         
         setCreateModalVisible(false);
         Alert.alert("¡Éxito!", "Ficha agregada correctamente");
-        fetchSheets();
+        fetchSheets(); 
 
     } catch (error) {
         console.error(error);
@@ -125,7 +148,6 @@ export default function ClientDetailScreen() {
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={{ padding: 15 }}
           
-          // Display when there are no sheets
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emoji}>📂</Text>
@@ -133,7 +155,6 @@ export default function ClientDetailScreen() {
             </View>
           }
 
-          // define how each item is rendered
           renderItem={({ item }) => (
             <View style={styles.card}>
               <View style={styles.cardHeader}>
@@ -142,9 +163,14 @@ export default function ClientDetailScreen() {
                 <View style={{flexDirection: 'row', alignItems: 'center'}}>
                   <Text style={styles.serviceBadge}>{item.service}</Text>
                   
-                  {/* Edit button triggered by user interaction */}
-                  <TouchableOpacity onPress={() => handleEditPress(item)} style={styles.editButton}>
+                  {/* Edit button */}
+                  <TouchableOpacity onPress={() => handleEditPress(item)} style={styles.iconButton}>
                     <Text style={{fontSize: 18}}>✏️</Text>
+                  </TouchableOpacity>
+
+                  {/* Delete button */}
+                  <TouchableOpacity onPress={() => handleDeleteSheet(item.id)} style={[styles.iconButton, { marginLeft: 10 }]}>
+                    <Text style={{fontSize: 18}}>🗑️</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -181,7 +207,6 @@ export default function ClientDetailScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Editar Ficha</Text>
-            {/* Reusing inputs logic */}
             <Text style={styles.inputLabel}>Servicio:</Text>
             <TextInput style={styles.input} value={tempService} onChangeText={setTempService} />
             <Text style={styles.inputLabel}>Fecha (YYYY-MM-DD):</Text>
@@ -270,7 +295,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  // -- Empty State Styles --
   emptyContainer: {
     alignItems: 'center',
     marginTop: 50,
@@ -283,7 +307,6 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 16,
   },
-  // -- Card Styles --
   card: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -294,7 +317,7 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 2,
     borderLeftWidth: 5,
-    borderLeftColor: '#6200ee', 
+    borderLeftColor: '#6200ee',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -320,7 +343,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginRight: 10, 
   },
-  editButton: {
+  // Updated style for icons
+  iconButton: {
     padding: 5,
   },
   label: {

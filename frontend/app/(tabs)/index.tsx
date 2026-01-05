@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View, FlatList, Platform, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'expo-router'; 
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter, useFocusEffect } from 'expo-router'; 
 import api from '../../src/services/api'; 
 
 // Define the Client type
@@ -18,17 +18,16 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const router = useRouter(); 
 
-  // -- NEW: State for "Add Client" Modal --
+  // -- State for "Add Client" Modal --
   const [modalVisible, setModalVisible] = useState(false);
   const [newClientName, setNewClientName] = useState('');
   const [newClientPhone, setNewClientPhone] = useState('');
 
-  // Moved fetchClients outside useEffect to allow reloading the list after creation
+  // Function to fetch clients
   const fetchClients = async () => {
     try {
       console.log("Pidiendo clientes al backend...");
       const response = await api.get('/clients');
-      console.log("¡Datos recibidos!", response.data);
       setClients(response.data); 
     } catch (error) {
       console.error("Error conectando:", error);
@@ -36,37 +35,61 @@ export default function HomeScreen() {
       setLoading(false);
     }
   };
+  // Fetch clients on screen focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchClients();
+    }, [])
+  );
 
-  useEffect(() => {
-    fetchClients();
-  }, []);
-
-  // -- NEW: Handler to create a new client --
+  // -- Handler to Create Client --
   const handleCreateClient = async () => {
-    // Validation
     if (!newClientName.trim()) {
       Alert.alert("Error", "El nombre es obligatorio");
       return;
     }
 
     try {
-      // Send POST request to backend
       await api.post('/clients', {
         fullname: newClientName,
         phone: newClientPhone,
       });
 
-      // Reset form, close modal and reload list
       setModalVisible(false);
       setNewClientName('');
       setNewClientPhone('');
-      fetchClients(); // Refresh the list
+      fetchClients(); 
       Alert.alert("¡Éxito!", "Clienta agregada correctamente");
 
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "No se pudo crear la clienta");
     }
+  };
+
+  // -- Handler to DELETE Client --
+  const handleDeleteClient = (clientId: number, clientName: string) => {
+    Alert.alert(
+      "Eliminar Cliente",
+      `¿Estás seguro de borrar a ${clientName}? Se borrará también todo su historial de fichas.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        { 
+          text: "Eliminar", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await api.delete(`/clients/${clientId}`);
+              fetchClients(); // Reload list
+              Alert.alert("Eliminado", "Cliente eliminado correctamente.");
+            } catch (error) {
+              console.error(error);
+              Alert.alert("Error", "No se pudo eliminar al cliente.");
+            }
+          }
+        }
+      ]
+    );
   };
 
   if (loading) {
@@ -91,12 +114,14 @@ export default function HomeScreen() {
           <Text style={styles.emptyText}>No hay clientas cargadas aún.</Text>
         }
         renderItem={({ item }) => (
-          <TouchableOpacity 
-            onPress={() => {
-              router.push(`/client/${item.id}` as any);
-            }}
-          >
-            <View style={styles.card}>
+          <View style={styles.cardContainer}>
+            {/* Main Card Area - Click to go to details */}
+            <TouchableOpacity 
+              style={styles.cardContent}
+              onPress={() => {
+                router.push(`/client/${item.id}` as any);
+              }}
+            >
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>{item.fullname.charAt(0)}</Text>
               </View>
@@ -104,12 +129,20 @@ export default function HomeScreen() {
                 <Text style={styles.name}>{item.fullname}</Text>
                 <Text style={styles.phone}>{item.phone || 'Sin teléfono'}</Text>
               </View>
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+
+            {/* Delete Button Area */}
+            <TouchableOpacity 
+              style={styles.deleteButton}
+              onPress={() => handleDeleteClient(item.id, item.fullname)}
+            >
+              <Text style={{fontSize: 20}}>🗑️</Text>
+            </TouchableOpacity>
+          </View>
         )}
       />
 
-      {/* -- NEW: Floating Action Button (+) -- */}
+      {/* -- FAB (+) -- */}
       <TouchableOpacity 
         style={styles.fab} 
         onPress={() => setModalVisible(true)}
@@ -117,7 +150,7 @@ export default function HomeScreen() {
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
 
-      {/* -- NEW: Create Client Modal -- */}
+      {/* -- Create Modal -- */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -192,9 +225,9 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 16,
   },
-  card: {
+  // -- Modified Card Styles to include Delete Button --
+  cardContainer: {
     backgroundColor: '#fff',
-    padding: 15,
     marginHorizontal: 15,
     marginTop: 10,
     borderRadius: 10,
@@ -204,6 +237,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 3,
+    paddingRight: 15, 
+  },
+  cardContent: {
+    flex: 1, 
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+  },
+  deleteButton: {
+    padding: 10,
   },
   avatar: {
     width: 40,
@@ -228,7 +271,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
-  // -- NEW: Floating Action Button Styles --
+  // -- FAB Styles --
   fab: {
     position: 'absolute',
     width: 60,
@@ -250,7 +293,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: -2, 
   },
-  // -- NEW: Modal Styles --
+  // -- Modal Styles --
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

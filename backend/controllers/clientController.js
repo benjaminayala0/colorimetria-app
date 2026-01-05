@@ -1,4 +1,5 @@
 const Client = require('../models/Client');
+const TechnicalSheet = require('../models/TechnicalSheet');
 
 // 1. Create a new Client
 exports.createClient = async (req, res) => {
@@ -37,6 +38,33 @@ exports.getAllClients = async (req, res) => {
             { order: [['fullname', 'ASC']] }
         );
         res.status(200).json(clients);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error del servidor, intente más tarde' });
+    }
+};
+
+// 3. Delete a Client (and their history)
+exports.deleteClient = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // First: Delete all technical sheets associated with this client
+        await TechnicalSheet.destroy({
+            where: { clientId: id }
+        });
+
+        // Second: Delete the client
+        const result = await Client.destroy({
+            where: { id: id }
+        });
+
+        if (result === 0) {
+            return res.status(404).json({ error: 'Cliente no encontrado' });
+        }
+
+        res.status(200).json({ message: 'Cliente y su historial eliminados correctamente' });
+
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Error del servidor, intente más tarde' });

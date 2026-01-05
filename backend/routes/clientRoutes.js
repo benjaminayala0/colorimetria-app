@@ -8,4 +8,7 @@ router.post('/', clientController.createClient);
 // Get all clients
 router.get('/', clientController.getAllClients);
 
+// Delete a client 
+router.delete('/:id', clientController.deleteClient);
+
 module.exports = router;

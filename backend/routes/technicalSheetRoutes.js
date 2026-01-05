@@ -43,4 +43,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// Delete a technical sheet
+router.delete('/:id', technicalSheetController.deleteSheet);
+
 module.exports = router;

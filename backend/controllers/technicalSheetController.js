@@ -47,3 +47,24 @@ exports.getSheetsByClient = async (req, res) => {
         res.status(500).json({ error: 'Error del servidor' });
     }
 };
+
+// 3. Delete a Technical Sheet
+exports.deleteSheet = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const result = await TechnicalSheet.destroy({
+            where: { id: id }
+        });
+
+        if (result === 0) {
+            return res.status(404).json({ error: 'Ficha no encontrada' });
+        }
+
+        res.status(200).json({ message: 'Ficha eliminada correctamente' });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error del servidor' });
+    }
+};
