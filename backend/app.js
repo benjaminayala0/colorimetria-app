@@ -30,7 +30,7 @@ TechnicalSheet.belongsTo(Client, { foreignKey: 'clientId' });
 // --- SYNC DB & START SERVER ---
 async function startServer() {
     try {
-        await sequelize.sync({ force: false, alter: true });
+        await sequelize.sync({ force: false, alter: false });
         console.log('✅ Database connected and synchronized');
 
         app.listen(PORT, () => {
