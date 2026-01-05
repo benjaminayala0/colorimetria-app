@@ -33,7 +33,9 @@ exports.createClient = async (req, res) => {
 // 2. Get All Clients
 exports.getAllClients = async (req, res) => {
     try {
-        const clients = await Client.findAll();
+        const clients = await Client.findAll(
+            { order: [['fullname', 'ASC']] }
+        );
         res.status(200).json(clients);
     } catch (error) {
         console.error(error);
