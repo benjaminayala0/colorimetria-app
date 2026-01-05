@@ -23,6 +23,7 @@ Thumbs.db
 
 # Build directories
 .expo/
+expo-env.d.ts
 dist/
 web-build/
 *.jks
