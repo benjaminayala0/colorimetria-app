@@ -17,11 +17,15 @@ export default function ClientDetailScreen() {
   const [sheets, setSheets] = useState<TechnicalSheet[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // -- State for editing functionality --
-  const [modalVisible, setModalVisible] = useState(false);
+  // -- State for EDITING functionality --
+  const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingSheet, setEditingSheet] = useState<TechnicalSheet | null>(null);
   
-  // -- Temporary state for form inputs --
+  // -- State for CREATING functionality --
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  
+  // -- Form States (Shared for Create & Edit) --
+  // We can reuse these states, cleaning them up before opening modals
   const [tempService, setTempService] = useState('');
   const [tempFormula, setTempFormula] = useState('');
   const [tempNotes, setTempNotes] = useState('');
@@ -45,37 +49,67 @@ export default function ClientDetailScreen() {
     if (id) fetchSheets();
   }, [id]);
 
-  // -- Handler to open the modal with selected sheet data --
+  // --- EDIT HANDLERS ---
   const handleEditPress = (sheet: TechnicalSheet) => {
     setEditingSheet(sheet);
     setTempService(sheet.service);
     setTempFormula(sheet.formula);
     setTempNotes(sheet.notes || '');
     setTempDate(sheet.date);
-    setModalVisible(true);
+    setEditModalVisible(true);
   };
 
-  // -- Handler to submit updated data to the backend --
   const handleSaveEdit = async () => {
     if (!editingSheet) return;
-
     try {
-      // Send PUT request to update the specific sheet
       await api.put(`/sheets/${editingSheet.id}`, {
         service: tempService,
         formula: tempFormula,
         notes: tempNotes,
         date: tempDate,
       });
-
-      // Close modal and refresh list
-      setModalVisible(false);
+      setEditModalVisible(false);
       Alert.alert("Success", "Technical sheet updated successfully.");
       fetchSheets(); 
-
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to update the technical sheet.");
+    }
+  };
+
+  // --- CREATE HANDLERS  ---
+  const handleOpenCreate = () => {
+    // Clean form before opening
+    const today = new Date().toISOString().split('T')[0]; 
+    setTempService('');
+    setTempFormula('');
+    setTempNotes('');
+    setTempDate(today); 
+    setCreateModalVisible(true);
+  };
+
+  const handleCreateSheet = async () => {
+    if (!tempService || !tempFormula) {
+        Alert.alert("Error", "Servicio y Fórmula son obligatorios");
+        return;
+    }
+
+    try {
+        await api.post('/sheets', {
+            clientId: id, 
+            service: tempService,
+            formula: tempFormula,
+            notes: tempNotes,
+            date: tempDate
+        });
+        
+        setCreateModalVisible(false);
+        Alert.alert("¡Éxito!", "Ficha agregada correctamente");
+        fetchSheets();
+
+    } catch (error) {
+        console.error(error);
+        Alert.alert("Error", "No se pudo crear la ficha");
     }
   };
 
@@ -91,7 +125,7 @@ export default function ClientDetailScreen() {
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={{ padding: 15 }}
           
-          // Show this when there are no technical sheets
+          // Display when there are no sheets
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emoji}>📂</Text>
@@ -129,49 +163,99 @@ export default function ClientDetailScreen() {
         />
       )}
 
+      {/* -- Floating Action Button for NEW SHEET (+) -- */}
+      <TouchableOpacity 
+        style={styles.fab} 
+        onPress={handleOpenCreate}
+      >
+        <Text style={styles.fabText}>+</Text>
+      </TouchableOpacity>
+
       {/* -- Edit Modal Component -- */}
       <Modal
         animationType="slide"
         transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
+        visible={editModalVisible}
+        onRequestClose={() => setEditModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Editar Ficha</Text>
-
+            {/* Reusing inputs logic */}
             <Text style={styles.inputLabel}>Servicio:</Text>
             <TextInput style={styles.input} value={tempService} onChangeText={setTempService} />
-
             <Text style={styles.inputLabel}>Fecha (YYYY-MM-DD):</Text>
             <TextInput style={styles.input} value={tempDate} onChangeText={setTempDate} />
-
             <Text style={styles.inputLabel}>Fórmula:</Text>
-            <TextInput 
-              style={[styles.input, styles.textArea]} 
-              value={tempFormula} 
-              onChangeText={setTempFormula} 
-              multiline 
-            />
-
+            <TextInput style={[styles.input, styles.textArea]} value={tempFormula} onChangeText={setTempFormula} multiline />
             <Text style={styles.inputLabel}>Notas:</Text>
-            <TextInput 
-              style={[styles.input, styles.textArea]} 
-              value={tempNotes} 
-              onChangeText={setTempNotes} 
-              multiline 
-            />
+            <TextInput style={[styles.input, styles.textArea]} value={tempNotes} onChangeText={setTempNotes} multiline />
 
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => setModalVisible(false)}>
+              <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => setEditModalVisible(false)}>
                 <Text style={styles.buttonText}>Cancelar</Text>
               </TouchableOpacity>
-              
               <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={handleSaveEdit}>
                 <Text style={styles.buttonText}>Guardar</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
 
+      {/* -- Create Modal Component -- */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={createModalVisible}
+        onRequestClose={() => setCreateModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Nueva Visita</Text>
+            
+            <Text style={styles.inputLabel}>Servicio:</Text>
+            <TextInput 
+                style={styles.input} 
+                placeholder="Ej: Color, Corte, Nutrición"
+                value={tempService} 
+                onChangeText={setTempService} 
+            />
+            
+            <Text style={styles.inputLabel}>Fecha (YYYY-MM-DD):</Text>
+            <TextInput 
+                style={styles.input} 
+                placeholder="Ej: 2024-01-20"
+                value={tempDate} 
+                onChangeText={setTempDate} 
+            />
+            
+            <Text style={styles.inputLabel}>Fórmula:</Text>
+            <TextInput 
+                style={[styles.input, styles.textArea]} 
+                placeholder="Ej: 30g de 7.1 + 20 vol"
+                value={tempFormula} 
+                onChangeText={setTempFormula} 
+                multiline 
+            />
+            
+            <Text style={styles.inputLabel}>Notas:</Text>
+            <TextInput 
+                style={[styles.input, styles.textArea]} 
+                placeholder="Opcional..."
+                value={tempNotes} 
+                onChangeText={setTempNotes} 
+                multiline 
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => setCreateModalVisible(false)}>
+                <Text style={styles.buttonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={handleCreateSheet}>
+                <Text style={styles.buttonText}>Crear</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -186,7 +270,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  // Estilo cuando no hay datos
+  // -- Empty State Styles --
   emptyContainer: {
     alignItems: 'center',
     marginTop: 50,
@@ -199,7 +283,7 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 16,
   },
-  // Tarjeta de Ficha
+  // -- Card Styles --
   card: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -210,7 +294,7 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 2,
     borderLeftWidth: 5,
-    borderLeftColor: '#6200ee', // Borde violeta decorativo
+    borderLeftColor: '#6200ee', 
   },
   cardHeader: {
     flexDirection: 'row',
@@ -234,7 +318,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     fontSize: 12,
     fontWeight: 'bold',
-    marginRight: 10, // Added margin for spacing with edit button
+    marginRight: 10, 
   },
   editButton: {
     padding: 5,
@@ -255,6 +339,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#555',
     fontStyle: 'italic',
+  },
+  // -- FAB Styles --
+  fab: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    right: 20,
+    bottom: 20,
+    backgroundColor: '#6200ee',
+    borderRadius: 30,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+  },
+  fabText: {
+    fontSize: 30,
+    color: '#fff',
+    fontWeight: 'bold',
+    marginTop: -2, 
   },
   // -- Modal Styles --
   modalOverlay: {

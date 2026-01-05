@@ -37,7 +37,7 @@ exports.getSheetsByClient = async (req, res) => {
 
         const sheets = await TechnicalSheet.findAll({
             where: { clientId: clientId }, 
-            order: [['createdAt', 'DESC']] 
+            order: [['date', 'DESC']] 
         });
 
         res.status(200).json(sheets);
