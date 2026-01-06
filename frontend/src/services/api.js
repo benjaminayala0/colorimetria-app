@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-//  Local development API URL
-const API_URL = 'http://192.168.1.6:3000/api'; 
+// Url Render Backend  
+const API_URL = 'https://colorimetria-app.onrender.com'; 
 
 const api = axios.create({
     baseURL: API_URL,

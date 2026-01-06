@@ -35,7 +35,7 @@ export default function ClientDetailScreen() {
     try {
       console.log(`Buscando fichas para cliente ${id}...`);
       // Fetch sheets from backend
-      const response = await api.get(`/sheets/client/${id}`);
+      const response = await api.get(`/api/sheets/client/${id}`);
       setSheets(response.data);
     } catch (error) {
       console.error("Error trayendo fichas:", error);
@@ -60,7 +60,7 @@ export default function ClientDetailScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await api.delete(`/sheets/${sheetId}`);
+              await api.delete(`/api/sheets/${sheetId}`);
               Alert.alert("Eliminado", "La ficha se borró correctamente.");
               fetchSheets(); 
             } catch (error) {
@@ -86,18 +86,18 @@ export default function ClientDetailScreen() {
   const handleSaveEdit = async () => {
     if (!editingSheet) return;
     try {
-      await api.put(`/sheets/${editingSheet.id}`, {
+      await api.put(`/api/sheets/${editingSheet.id}`, {
         service: tempService,
         formula: tempFormula,
         notes: tempNotes,
         date: tempDate,
       });
       setEditModalVisible(false);
-      Alert.alert("Success", "Technical sheet updated successfully.");
+      Alert.alert("Éxito", "Ficha técnica actualizada correctamente.");
       fetchSheets(); 
     } catch (error) {
       console.error(error);
-      Alert.alert("Error", "Failed to update the technical sheet.");
+      Alert.alert("Error", "No se pudo actualizar la ficha.");
     }
   };
 
@@ -118,7 +118,7 @@ export default function ClientDetailScreen() {
     }
 
     try {
-        await api.post('/sheets', {
+        await api.post('/api/sheets', {
             clientId: id, 
             service: tempService,
             formula: tempFormula,

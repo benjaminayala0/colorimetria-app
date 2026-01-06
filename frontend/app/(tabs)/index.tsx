@@ -27,7 +27,7 @@ export default function HomeScreen() {
   const fetchClients = async () => {
     try {
       console.log("Pidiendo clientes al backend...");
-      const response = await api.get('/clients');
+      const response = await api.get('/api/clients');
       setClients(response.data); 
     } catch (error) {
       console.error("Error conectando:", error);
@@ -50,7 +50,7 @@ export default function HomeScreen() {
     }
 
     try {
-      await api.post('/clients', {
+      await api.post('/api/clients', {
         fullname: newClientName,
         phone: newClientPhone,
       });
@@ -79,7 +79,7 @@ export default function HomeScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await api.delete(`/clients/${clientId}`);
+              await api.delete(`/api/clients/${clientId}`);
               fetchClients(); // Reload list
               Alert.alert("Eliminado", "Cliente eliminado correctamente.");
             } catch (error) {
