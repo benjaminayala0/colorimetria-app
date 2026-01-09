@@ -3,8 +3,16 @@ const router = express.Router();
 const technicalSheetController = require('../controllers/technicalSheetController');
 const TechnicalSheet = require('../models/TechnicalSheet'); // Importamos el modelo Sequelize
 
+// Cloudinary upload middleware
+const upload = require('../src/config/cloudinary'); 
+
 // Create a new technical sheet
-router.post('/', technicalSheetController.createSheet);
+router.post('/', 
+  upload.fields([
+  {name: 'photoBefore', maxCount: 1},
+  {name: 'photoAfter', maxCount: 1}
+  ]),
+  technicalSheetController.createSheet);
 
 // Get all technical sheets for a specific client
 router.get('/client/:clientId', technicalSheetController.getSheetsByClient);

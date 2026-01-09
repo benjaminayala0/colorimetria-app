@@ -11,12 +11,29 @@ exports.createSheet = async (req, res) => {
             });
         }
 
+        // Handle uploaded images
+        let photoBefore = null;
+        let photoAfter = null;
+        
+        // verify if files are uploaded
+        if (req.files){
+            if (req.files.photoBefore){
+                photoBefore = req.files.photoBefore[0].path;
+            }
+            if (req.files.photoAfter){
+                photoAfter = req.files.photoAfter[0].path;
+            }
+        }
+        
+        // Create the new technical sheet record
         const newSheet = await TechnicalSheet.create({
             clientId,
             service,
             formula,
             notes,
-            date 
+            date,
+            photoBefore: photoBefore,   
+            photoAfter: photoAfter
         });
 
         res.status(201).json({
