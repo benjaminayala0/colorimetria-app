@@ -1,6 +1,7 @@
 import { useLocalSearchParams, Stack } from 'expo-router';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert, Image, ScrollView } from 'react-native';
 import { useState, useEffect } from 'react';
+import * as ImagePicker from 'expo-image-picker';
 import api from '../../src/services/api';
 
 // Define the TechnicalSheet type
@@ -10,6 +11,8 @@ interface TechnicalSheet {
   service: string;
   formula: string;
   notes?: string;
+  photoBefore?: string;
+  photoAfter?: string;
 }
 
 export default function ClientDetailScreen() {
@@ -30,12 +33,16 @@ export default function ClientDetailScreen() {
   const [tempNotes, setTempNotes] = useState('');
   const [tempDate, setTempDate] = useState('');
 
+  // -- Image States for Create Modal --
+  const [photoBefore, setPhotoBefore] = useState<string | null>(null);
+  const [photoAfter, setPhotoAfter] = useState<string | null>(null);
+
   // Fetch technical sheets for the client when component mounts
   const fetchSheets = async () => {
     try {
-      console.log(`Buscando fichas para cliente ${id}...`);
+      setLoading(true);
       // Fetch sheets from backend
-      const response = await api.get(`/api/sheets/client/${id}`);
+      const response = await api.get(`/api/sheets/client/${id}`); 
       setSheets(response.data);
     } catch (error) {
       console.error("Error trayendo fichas:", error);
@@ -47,6 +54,32 @@ export default function ClientDetailScreen() {
   useEffect(() => {
     if (id) fetchSheets();
   }, [id]);
+
+  // --- IMAGE PICKER HANDLER ---
+  const pickImage = async (type: 'before' | 'after') => {
+    // request permissions
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permiso denegado', 'Necesitamos acceso a la galería para subir fotos.');
+      return;
+    }
+
+   // open image picker
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true, 
+      aspect: [4, 3],
+      quality: 0.7, 
+    });
+
+    if (!result.canceled) {
+      if (type === 'before') {
+        setPhotoBefore(result.assets[0].uri);
+      } else {
+        setPhotoAfter(result.assets[0].uri);
+      }
+    }
+  };
 
   // --- DELETE HANDLER ---
   const handleDeleteSheet = (sheetId: number) => {
@@ -60,7 +93,7 @@ export default function ClientDetailScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await api.delete(`/api/sheets/${sheetId}`);
+              await api.delete(`/api/sheets/${sheetId}`); 
               Alert.alert("Eliminado", "La ficha se borró correctamente.");
               fetchSheets(); 
             } catch (error) {
@@ -80,18 +113,50 @@ export default function ClientDetailScreen() {
     setTempFormula(sheet.formula);
     setTempNotes(sheet.notes || '');
     setTempDate(sheet.date);
+    setPhotoBefore(sheet.photoBefore || null);
+    setPhotoAfter(sheet.photoAfter || null);
     setEditModalVisible(true);
   };
 
   const handleSaveEdit = async () => {
     if (!editingSheet) return;
     try {
-      await api.put(`/api/sheets/${editingSheet.id}`, {
-        service: tempService,
-        formula: tempFormula,
-        notes: tempNotes,
-        date: tempDate,
+      const formData = new FormData();
+      formData.append('service', tempService);
+      formData.append('formula', tempFormula);
+      formData.append('notes', tempNotes);
+      formData.append('date', tempDate);
+
+      if (photoBefore && !photoBefore.startsWith('http')) {
+        const filename = photoBefore.split('/').pop();
+        const match = /\.(\w+)$/.exec(filename || '');
+        const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+        formData.append('photoBefore', {
+          uri: photoBefore,
+          name: filename || 'edit_before.jpg',
+          type: type,
+        } as any);
+      }
+
+      if (photoAfter && !photoAfter.startsWith('http')) {
+        const filename = photoAfter.split('/').pop();
+        const match = /\.(\w+)$/.exec(filename || '');
+        const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+        formData.append('photoAfter', {
+          uri: photoAfter,
+          name: filename || 'edit_after.jpg',
+          type: type,
+        } as any);
+      }
+
+      await api.put(`/api/sheets/${editingSheet.id}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
+
       setEditModalVisible(false);
       Alert.alert("Éxito", "Ficha técnica actualizada correctamente.");
       fetchSheets(); 
@@ -107,10 +172,13 @@ export default function ClientDetailScreen() {
     setTempService('');
     setTempFormula('');
     setTempNotes('');
-    setTempDate(today); 
+    setTempDate(today);
+    setPhotoBefore(null);
+    setPhotoAfter(null);
     setCreateModalVisible(true);
   };
 
+  // -- CREATE SHEET HANDLER --
   const handleCreateSheet = async () => {
     if (!tempService || !tempFormula) {
         Alert.alert("Error", "Servicio y Fórmula son obligatorios");
@@ -118,27 +186,60 @@ export default function ClientDetailScreen() {
     }
 
     try {
-        await api.post('/api/sheets', {
-            clientId: id, 
-            service: tempService,
-            formula: tempFormula,
-            notes: tempNotes,
-            date: tempDate
+  
+        const formData = new FormData();
+    
+        formData.append('clientId', id.toString()); 
+        formData.append('service', tempService);
+        formData.append('formula', tempFormula);
+        formData.append('notes', tempNotes);
+        formData.append('date', tempDate);
+
+        
+        if (photoBefore) {
+            const filename = photoBefore.split('/').pop();
+            const match = /\.(\w+)$/.exec(filename || '');
+            const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+            formData.append('photoBefore', {
+                uri: photoBefore,
+                name: filename || 'before.jpg',
+                type: type,
+            } as any); 
+        }
+
+        if (photoAfter) {
+            const filename = photoAfter.split('/').pop();
+            const match = /\.(\w+)$/.exec(filename || '');
+            const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+            formData.append('photoAfter', {
+                uri: photoAfter,
+                name: filename || 'after.jpg',
+                type: type,
+            } as any);
+        }
+
+    
+        await api.post('/api/sheets', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
         });
         
         setCreateModalVisible(false);
-        Alert.alert("¡Éxito!", "Ficha agregada correctamente");
+        Alert.alert("¡Éxito!", "Ficha agregada con fotos correctamente");
         fetchSheets(); 
 
     } catch (error) {
-        console.error(error);
-        Alert.alert("Error", "No se pudo crear la ficha");
+        console.error("Error creating sheet:", error);
+        Alert.alert("Error", "No se pudo crear la ficha (Revisá la consola)");
     }
   };
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: `Historial Cliente #${id}` }} />
+      <Stack.Screen options={{ title: `Historial Cliente` }} />
 
       {loading ? (
         <ActivityIndicator size="large" color="#6200ee" style={{ marginTop: 20 }} />
@@ -184,6 +285,24 @@ export default function ClientDetailScreen() {
                   <Text style={styles.notes}>{item.notes}</Text>
                 </>
               )}
+
+              {(item.photoBefore || item.photoAfter) && (
+                <View style={styles.photosContainer}>
+                    {item.photoBefore && (
+                        <View style={styles.photoWrapper}>
+                            <Text style={styles.photoLabel}>Antes</Text>
+                            <Image source={{ uri: item.photoBefore }} style={styles.cardImage} />
+                        </View>
+                    )}
+                    {item.photoAfter && (
+                        <View style={styles.photoWrapper}>
+                            <Text style={styles.photoLabel}>Después</Text>
+                            <Image source={{ uri: item.photoAfter }} style={styles.cardImage} />
+                        </View>
+                    )}
+                </View>
+              )}
+
             </View>
           )}
         />
@@ -216,6 +335,32 @@ export default function ClientDetailScreen() {
             <Text style={styles.inputLabel}>Notas:</Text>
             <TextInput style={[styles.input, styles.textArea]} value={tempNotes} onChangeText={setTempNotes} multiline />
 
+            <Text style={styles.inputLabel}>Fotos (Opcional):</Text>
+            <View style={styles.photoButtonsContainer}>
+                {/* Button before */}
+                <TouchableOpacity style={styles.photoUploadButton} onPress={() => pickImage('before')}>
+                  {photoBefore ? (
+                    <Image source={{ uri: photoBefore }} style={styles.previewImage} />
+                  ) : (
+                    <View style={styles.placeholderImage}>
+                         <Text>📷 Antes</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+
+                {/* Button after */}
+                <TouchableOpacity style={styles.photoUploadButton} onPress={() => pickImage('after')}>
+                  {photoAfter ? (
+                    <Image source={{ uri: photoAfter }} style={styles.previewImage} />
+                  ) : (
+                    <View style={styles.placeholderImage}>
+                         <Text>✨ Después</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+            </View>
+
             <View style={styles.modalButtons}>
               <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => setEditModalVisible(false)}>
                 <Text style={styles.buttonText}>Cancelar</Text>
@@ -237,6 +382,7 @@ export default function ClientDetailScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
+            <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={styles.modalTitle}>Nueva Visita</Text>
             
             <Text style={styles.inputLabel}>Servicio:</Text>
@@ -273,6 +419,29 @@ export default function ClientDetailScreen() {
                 multiline 
             />
 
+            <Text style={styles.inputLabel}>Fotos (Opcional):</Text>
+            <View style={styles.photoButtonsContainer}>
+                <TouchableOpacity style={styles.photoUploadButton} onPress={() => pickImage('before')}>
+                    {photoBefore ? (
+                        <Image source={{ uri: photoBefore }} style={styles.previewImage} />
+                    ) : (
+                        <View style={styles.placeholderImage}>
+                             <Text>📷 Antes</Text>
+                        </View>
+                    )}
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.photoUploadButton} onPress={() => pickImage('after')}>
+                    {photoAfter ? (
+                        <Image source={{ uri: photoAfter }} style={styles.previewImage} />
+                    ) : (
+                        <View style={styles.placeholderImage}>
+                             <Text>✨ Después</Text>
+                        </View>
+                    )}
+                </TouchableOpacity>
+            </View>
+
             <View style={styles.modalButtons}>
               <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => setCreateModalVisible(false)}>
                 <Text style={styles.buttonText}>Cancelar</Text>
@@ -281,6 +450,7 @@ export default function ClientDetailScreen() {
                 <Text style={styles.buttonText}>Crear</Text>
               </TouchableOpacity>
             </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -343,7 +513,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginRight: 10, 
   },
-  // Updated style for icons
   iconButton: {
     padding: 5,
   },
@@ -363,6 +532,51 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#555',
     fontStyle: 'italic',
+  },
+  photosContainer: {
+    flexDirection: 'row',
+    marginTop: 10,
+    gap: 10,
+  },
+  photoWrapper: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  photoLabel: {
+    fontSize: 10,
+    color: '#666',
+    marginBottom: 2,
+  },
+  cardImage: {
+    width: '100%',
+    height: 100,
+    borderRadius: 8,
+    backgroundColor: '#eee',
+    resizeMode: 'cover',
+  },
+  photoButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  photoUploadButton: {
+    width: '48%',
+    height: 100,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  previewImage: {
+    width: '100%',
+    height: '100%',
+  },
+  placeholderImage: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   // -- FAB Styles --
   fab: {
@@ -395,6 +609,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: '90%',
+    maxHeight: '90%', 
     backgroundColor: '#fff',
     borderRadius: 20,
     padding: 20,

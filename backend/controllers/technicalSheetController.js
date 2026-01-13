@@ -2,6 +2,7 @@ const TechnicalSheet = require('../models/TechnicalSheet');
 
 // 1. Create a new Technical Sheet
 exports.createSheet = async (req, res) => {
+    
     try {
         const { clientId, service, formula, notes, date } = req.body;
 
@@ -45,6 +46,7 @@ exports.createSheet = async (req, res) => {
         console.error(error);
         res.status(500).json({ error: 'Error del servidor' });
     }
+    
 };
 
 // 2. Get all sheets for a SPECIFIC Client

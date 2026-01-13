@@ -131,6 +131,16 @@ export default function HomeScreen() {
               </View>
             </TouchableOpacity>
 
+            {/*Button edit area*/}
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => {
+                router.push(`/client/edit/${item.id}` as any);
+              }}
+            >
+              <Text style={{fontSize: 20}}>✏️</Text>
+            </TouchableOpacity>
+
             {/* Delete Button Area */}
             <TouchableOpacity 
               style={styles.deleteButton}

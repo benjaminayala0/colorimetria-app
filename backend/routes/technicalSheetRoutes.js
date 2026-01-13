@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const technicalSheetController = require('../controllers/technicalSheetController');
-const TechnicalSheet = require('../models/TechnicalSheet'); // Importamos el modelo Sequelize
+const TechnicalSheet = require('../models/TechnicalSheet'); 
 
 // Cloudinary upload middleware
 const upload = require('../src/config/cloudinary'); 
@@ -18,7 +18,12 @@ router.post('/',
 router.get('/client/:clientId', technicalSheetController.getSheetsByClient);
 
 //  Update an existing technical sheet
-router.put('/:id', async (req, res) => {
+router.put('/:id',
+  upload.fields([
+    {name: 'photoBefore', maxCount: 1},
+    {name: 'photoAfter', maxCount: 1}
+  ]),
+  async (req, res) => {
   const { id } = req.params;
   const { service, formula, notes, date } = req.body;
 
@@ -40,6 +45,14 @@ router.put('/:id', async (req, res) => {
     sheet.notes = notes;
     sheet.date = date;
 
+    if (req.files) {
+      if (req.files.photoBefore) {
+        sheet.photoBefore = req.files.photoBefore[0].path;
+      }
+      if (req.files.photoAfter) {
+        sheet.photoAfter = req.files.photoAfter[0].path;
+      }
+    }
     
     await sheet.save();
 
