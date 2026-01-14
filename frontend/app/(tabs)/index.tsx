@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, FlatList, Platform, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Platform, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router'; 
@@ -22,6 +22,13 @@ export default function HomeScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [newClientName, setNewClientName] = useState('');
   const [newClientPhone, setNewClientPhone] = useState('');
+
+  // -- State for "Edit Client" Modal --
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+
 
   // Function to fetch clients
   const fetchClients = async () => {
@@ -66,6 +73,37 @@ export default function HomeScreen() {
       Alert.alert("Error", "No se pudo crear la clienta");
     }
   };
+
+
+  // -- Handler to Edit Client --
+  const handleEditPress = (client: Client ) => {
+    setEditingClient(client);
+    setEditName(client.fullname);
+    setEditPhone(client.phone || '');
+    setEditModalVisible(true);
+};
+
+  const handleUpdateClient = async () => {
+    if (!editName.trim() || !editingClient) {
+        Alert.alert("Error", "El nombre es obligatorio");
+        return;
+    }
+
+    try {
+        await api.put(`/api/clients/${editingClient.id}`, {
+            fullname: editName,
+            phone: editPhone,
+        });
+
+        setEditModalVisible(false);
+        Alert.alert("¡Listo!", "Cliente actualizado correctamente");
+        fetchClients(); 
+
+    } catch (error) {
+        console.error("Error al editar:", error);
+        Alert.alert("Error", "No se pudo actualizar el cliente");
+    }
+};
 
   // -- Handler to DELETE Client --
   const handleDeleteClient = (clientId: number, clientName: string) => {
@@ -131,6 +169,14 @@ export default function HomeScreen() {
               </View>
             </TouchableOpacity>
 
+            {/*Button edit area*/}
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => handleEditPress(item)}
+                >
+              <Text style={{fontSize: 20}}>✏️</Text>
+            </TouchableOpacity>
+
             {/* Delete Button Area */}
             <TouchableOpacity 
               style={styles.deleteButton}
@@ -182,7 +228,7 @@ export default function HomeScreen() {
               <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => setModalVisible(false)}>
                 <Text style={styles.buttonText}>Cancelar</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={handleCreateClient}>
                 <Text style={styles.buttonText}>Guardar</Text>
               </TouchableOpacity>
@@ -191,6 +237,39 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
+      {/* -- Edit Modal -- */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={editModalVisible}
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Editar Clienta</Text>
+            <Text style={styles.inputLabel}>Nombre Completo:</Text>
+            <TextInput 
+              style={styles.input} 
+              value={editName} 
+              onChangeText={setEditName} 
+            />  
+            <Text style={styles.inputLabel}>Teléfono:</Text>
+            <TextInput 
+              style={styles.input} 
+              value={editPhone} 
+              onChangeText={setEditPhone} 
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => setEditModalVisible(false)}>
+                <Text style={styles.buttonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={handleUpdateClient}>
+                <Text style={styles.buttonText}>Guardar Cambios</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -336,8 +415,8 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
-    padding: 15,
-    borderRadius: 10,
+    padding: 10,
+    borderRadius: 8,
     alignItems: 'center',
     marginHorizontal: 5,
   },

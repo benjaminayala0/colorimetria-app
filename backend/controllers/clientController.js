@@ -70,3 +70,29 @@ exports.deleteClient = async (req, res) => {
         res.status(500).json({ error: 'Error del servidor, intente más tarde' });
     }
 };
+
+    // Update a Client
+    exports.updateClient = async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { fullname, phone } = req.body;
+
+            // Find the client by ID
+            const client = await Client.findByPk(id);
+            if (!client) {
+                return res.status(404).json({ error: 'Cliente no encontrado' });
+            }
+
+            // Update the client
+            client.fullname = fullname || client.fullname;
+            client.phone = phone || client.phone;
+
+            await client.save();
+
+            res.json({message: 'Cliente actualizado exitosamente', client});
+
+            } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'Error al actualizar el cliente, intente más tarde' });
+        }
+}; 
