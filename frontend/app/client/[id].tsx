@@ -1,5 +1,5 @@
 import { useLocalSearchParams, Stack } from 'expo-router';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert, Image, ScrollView,KeyboardAvoidingView, Platform} from 'react-native';
 import { useState, useEffect } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import api from '../../src/services/api';
@@ -233,7 +233,7 @@ export default function ClientDetailScreen() {
 
     } catch (error) {
         console.error("Error creating sheet:", error);
-        Alert.alert("Error", "No se pudo crear la ficha (Revisá la consola)");
+        Alert.alert("Error", "No se pudo crear la ficha técnica");
     }
   };
 
@@ -323,8 +323,12 @@ export default function ClientDetailScreen() {
         visible={editModalVisible}
         onRequestClose={() => setEditModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : "height"} 
+          style={styles.modalOverlay}
+        >
           <View style={styles.modalContent}>
+            <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={styles.modalTitle}>Editar Ficha</Text>
             <Text style={styles.inputLabel}>Servicio:</Text>
             <TextInput style={styles.input} value={tempService} onChangeText={setTempService} />
@@ -369,8 +373,9 @@ export default function ClientDetailScreen() {
                 <Text style={styles.buttonText}>Guardar</Text>
               </TouchableOpacity>
             </View>
-          </View>
+            </ScrollView>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* -- Create Modal Component -- */}
@@ -380,7 +385,10 @@ export default function ClientDetailScreen() {
         visible={createModalVisible}
         onRequestClose={() => setCreateModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalOverlay}
+        >
           <View style={styles.modalContent}>
             <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={styles.modalTitle}>Nueva Visita</Text>
@@ -452,9 +460,8 @@ export default function ClientDetailScreen() {
             </View>
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
-
     </View>
   );
 }
@@ -650,8 +657,8 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
-    padding: 15,
-    borderRadius: 10,
+    padding: 10,
+    borderRadius: 8,
     alignItems: 'center',
     marginHorizontal: 5,
   },
