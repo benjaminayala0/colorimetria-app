@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, FlatList, Modal, TextInput, Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -317,13 +318,13 @@ export default function AgendaScreen() {
                       style={styles.iconButton}
                       onPress={() => handleOpenEditModal(item)}
                     >
-                      <Text style={{fontSize: 18}}>✏️</Text>
+                      <FontAwesome5 name="edit" size={18} color="#6200ee" />
                     </TouchableOpacity>
                     <TouchableOpacity 
                       style={styles.iconButton}
                       onPress={() => handleDeleteAppointment(item.id, item.clientName)}
                     >
-                      <Text style={{fontSize: 18}}>🗑️</Text>
+                      <FontAwesome5 name="trash-alt" size={18} color="#ee2626" />
                     </TouchableOpacity>
                   </View>
                 </View>

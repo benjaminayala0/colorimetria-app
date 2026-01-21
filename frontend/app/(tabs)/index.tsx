@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View, FlatList, Platform, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert} from 'react-native';
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router'; 
@@ -118,7 +119,7 @@ export default function HomeScreen() {
           onPress: async () => {
             try {
               await api.delete(`/api/clients/${clientId}`);
-              fetchClients(); // Reload list
+              fetchClients(); 
               Alert.alert("Eliminado", "Cliente eliminado correctamente.");
             } catch (error) {
               console.error(error);
@@ -142,7 +143,10 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Mis Clientas 💇‍♀️</Text>
+        <Text style={styles.title}>Gestión de Clientes</Text>
+        <Text style={{ fontSize: 14, color: '#6B7280' }}>
+          Gestioná tus {clients.length} registros activos
+        </Text>
       </View>
 
       <FlatList
@@ -174,7 +178,7 @@ export default function HomeScreen() {
               style={styles.deleteButton}
               onPress={() => handleEditPress(item)}
                 >
-              <Text style={{fontSize: 20}}>✏️</Text>
+              <FontAwesome5 name="user-edit" size={18} color="#6200ee" />
             </TouchableOpacity>
 
             {/* Delete Button Area */}
@@ -182,7 +186,7 @@ export default function HomeScreen() {
               style={styles.deleteButton}
               onPress={() => handleDeleteClient(item.id, item.fullname)}
             >
-              <Text style={{fontSize: 20}}>🗑️</Text>
+              <FontAwesome5 name="user-times" size={18} color="#ee2626" />
             </TouchableOpacity>
           </View>
         )}

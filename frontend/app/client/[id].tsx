@@ -1,4 +1,5 @@
 import { useLocalSearchParams, Stack } from 'expo-router';
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert, Image, ScrollView,KeyboardAvoidingView, Platform} from 'react-native';
 import { useState, useEffect } from 'react';
 import * as ImagePicker from 'expo-image-picker';
@@ -266,12 +267,12 @@ export default function ClientDetailScreen() {
                   
                   {/* Edit button */}
                   <TouchableOpacity onPress={() => handleEditPress(item)} style={styles.iconButton}>
-                    <Text style={{fontSize: 18}}>✏️</Text>
+                    <FontAwesome5 name="edit" size={18} color="#6200ee" />
                   </TouchableOpacity>
 
                   {/* Delete button */}
                   <TouchableOpacity onPress={() => handleDeleteSheet(item.id)} style={[styles.iconButton, { marginLeft: 10 }]}>
-                    <Text style={{fontSize: 18}}>🗑️</Text>
+                    <FontAwesome5 name="trash-alt" size={18} color="#ee2626" />
                   </TouchableOpacity>
                 </View>
               </View>
