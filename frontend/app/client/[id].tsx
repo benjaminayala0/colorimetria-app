@@ -3,6 +3,7 @@ import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert, Image, ScrollView,KeyboardAvoidingView, Platform} from 'react-native';
 import { useState, useEffect } from 'react';
 import * as ImagePicker from 'expo-image-picker';
+import * as MediaLibrary from 'expo-media-library';
 import api from '../../src/services/api';
 
 // Define the TechnicalSheet type
@@ -56,30 +57,81 @@ export default function ClientDetailScreen() {
     if (id) fetchSheets();
   }, [id]);
 
-  // --- IMAGE PICKER HANDLER ---
-  const pickImage = async (type: 'before' | 'after') => {
-    // request permissions
+  // Open gallery
+  const openGallery = async (type: 'before' | 'after') => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
     if (status !== 'granted') {
       Alert.alert('Permiso denegado', 'Necesitamos acceso a la galería para subir fotos.');
       return;
     }
 
-   // open image picker
+    // Lauch gallery
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true, 
+      allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.7, 
+      quality: 0.8,
     });
 
     if (!result.canceled) {
-      if (type === 'before') {
-        setPhotoBefore(result.assets[0].uri);
-      } else {
-        setPhotoAfter(result.assets[0].uri);
-      }
+      const uri = result.assets[0].uri;
+      if (type === 'before') setPhotoBefore(uri);
+      else setPhotoAfter(uri);
     }
+  };
+
+  const openCamera = async (type: 'before' | 'after' ) => {
+    const camaraStatus = await ImagePicker.requestCameraPermissionsAsync();
+    const libraryStatus = await MediaLibrary.requestPermissionsAsync(true);
+
+    if (camaraStatus.status !== 'granted' || libraryStatus.status !== 'granted') {
+      Alert.alert('Permiso denegado', 'Necesitamos acceso a la cámara y galería para subir fotos.');
+      return;
+    }
+    
+    // Launch camera
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: false,
+      quality:1, 
+    });
+
+    if (!result.canceled) {
+      const uri = result.assets[0].uri;
+
+      //update state
+      if (type === 'before') setPhotoBefore(uri);
+      else setPhotoAfter(uri);
+
+      // Save to gallery
+      try {
+      await MediaLibrary.createAssetAsync(uri);
+    } catch (error) {
+      console.error("Error al abrir cámara:", error);
+    }
+   }
+  };
+
+  // // --- IMAGE PICKER HANDLER ---
+  const pickImage = async (type: 'before' | 'after') => {
+     Alert.alert(
+      'Seleccionar Imagen',
+      '¿De dónde querés obtener la imagen?',
+      [
+        {
+          text: 'cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Cámara',
+          onPress: () => openCamera(type),
+        },
+        {
+          text: 'Galería',
+          onPress: () => openGallery(type),
+        }
+      ]
+    );
   };
 
   // --- DELETE HANDLER ---
