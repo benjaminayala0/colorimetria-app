@@ -312,10 +312,14 @@ export default function ClientDetailScreen() {
           renderItem={({ item }) => (
             <View style={styles.card}>
               <View style={styles.cardHeader}>
-                <Text style={styles.date}>{item.date}</Text>
-                
-                <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                  <Text style={styles.serviceBadge}>{item.service}</Text>
+      
+                <View style={{flexDirection: 'row', alignItems: 'center',flex: 1,justifyContent: 'space-between',marginBottom: 5,width: '100%'}}>
+                  <Text style={styles.serviceBadge}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {item.service}
+                  </Text>
                   
                   {/* Edit button */}
                   <TouchableOpacity onPress={() => handleEditPress(item)} style={styles.iconButton}>
@@ -329,6 +333,12 @@ export default function ClientDetailScreen() {
                 </View>
               </View>
               
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <FontAwesome5 name="calendar-alt" size={12} color="#999" style={{ marginRight: 5 }} />
+                <Text style={styles.date}>{item.date}</Text>
+              </View>
+              
+                
               <Text style={styles.label}>Fórmula:</Text>
               <Text style={styles.formula}>{item.formula}</Text>
 
@@ -550,9 +560,9 @@ const styles = StyleSheet.create({
     borderLeftColor: '#6200ee',
   },
   cardHeader: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
@@ -564,6 +574,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   serviceBadge: {
+    flexShrink: 1,
     backgroundColor: '#ede7f6',
     color: '#6200ee',
     paddingHorizontal: 10,
@@ -680,6 +691,8 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   modalTitle: {
+    flex: 1,
+    marginRight: 10,
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 15,

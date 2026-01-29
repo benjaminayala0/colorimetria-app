@@ -6,10 +6,10 @@ const { Sequelize } = require('sequelize');
     dialect: 'postgres', 
     logging: false ,
     dialectOptions: {
-        ssl: {
-            require: true,
-            rejectUnauthorized: false
-        }
+    //     ssl: {
+    //         require: true,
+    //         rejectUnauthorized: false
+    //     }
     } 
 });
 
