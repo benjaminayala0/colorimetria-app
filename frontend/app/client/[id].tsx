@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, 
 import { useState, useEffect } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
+import *as ImageManipulator from 'expo-image-manipulator'
 import api from '../../src/services/api';
 
 // Define the TechnicalSheet type
@@ -53,6 +54,20 @@ export default function ClientDetailScreen() {
     }
   };
 
+  const optimizeImage = async (uri: string) => {
+    try {
+      const result = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: 1080 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+      );
+      return result.uri;
+    } catch (error) {
+      console.error("Error optimizando:", error);
+      return uri; 
+    }
+  };
+
   useEffect(() => {
     if (id) fetchSheets();
   }, [id]);
@@ -71,11 +86,13 @@ export default function ClientDetailScreen() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.8,
+      quality: 1,
     });
 
     if (!result.canceled) {
-      const uri = result.assets[0].uri;
+      let uri = result.assets[0].uri;
+
+      uri = await optimizeImage(uri);
       if (type === 'before') setPhotoBefore(uri);
       else setPhotoAfter(uri);
     }
@@ -97,18 +114,19 @@ export default function ClientDetailScreen() {
     });
 
     if (!result.canceled) {
-      const uri = result.assets[0].uri;
+      let uri = result.assets[0].uri;
+
+      try {
+        await MediaLibrary.createAssetAsync(uri);
+      } catch (error) {
+        console.error("Error al guardar en galería:", error);
+      }
+
+      uri = await optimizeImage(uri);
 
       //update state
       if (type === 'before') setPhotoBefore(uri);
       else setPhotoAfter(uri);
-
-      // Save to gallery
-      try {
-      await MediaLibrary.createAssetAsync(uri);
-    } catch (error) {
-      console.error("Error al abrir cámara:", error);
-    }
    }
   };
 
