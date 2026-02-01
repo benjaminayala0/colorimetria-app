@@ -203,6 +203,24 @@ export default function ClientDetailScreen() {
   const handleSaveEdit = async () => {
     if (!editingSheet) return;
 
+    if (tempService.length > 255) {
+        Alert.alert("Error", "El campo Servicio no puede exceder los 255 caracteres.");
+        return;
+    }
+    if (tempFormula.length > 255) {
+        Alert.alert("Error", "El campo Fórmula no puede exceder los 255 caracteres.");
+        return;
+    }
+    if (tempNotes.length > 500) {
+        Alert.alert("Error", "El campo Notas no puede exceder los 500 caracteres.");
+        return;
+    }
+
+    if (!tempService || !tempFormula) {
+        Alert.alert("Error", "Servicio y Fórmula son obligatorios");
+        return;
+    }
+
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(tempDate)) {
         Alert.alert("Error", "La fecha debe tener el formato YYYY-MM-DD");
@@ -270,6 +288,7 @@ export default function ClientDetailScreen() {
   // -- CREATE SHEET HANDLER --
   const handleCreateSheet = async () => {
 
+
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(tempDate)) {
         Alert.alert("Error", "La fecha debe tener el formato YYYY-MM-DD");
@@ -288,6 +307,22 @@ export default function ClientDetailScreen() {
 
     if (isSubmitting) return; 
     setIsSubmitting(true);
+
+    if (tempService.length > 255) {
+        Alert.alert("Error", "El campo Servicio no puede exceder los 255 caracteres.");
+        setIsSubmitting(false);
+        return;
+    }
+    if (tempFormula.length > 255) {
+        Alert.alert("Error", "El campo Fórmula no puede exceder los 255 caracteres.");
+        setIsSubmitting(false);
+        return;
+    }
+    if (tempNotes.length > 500) {
+        Alert.alert("Error", "El campo Notas no puede exceder los 500 caracteres.");
+        setIsSubmitting(false);
+        return;
+    }
 
     try {
   
@@ -341,6 +376,49 @@ export default function ClientDetailScreen() {
     } finally {
         setIsSubmitting(false);
     }
+  };
+
+  const handleCancelCreate = () => {
+   
+    const hasUnsavedData = 
+        tempService.trim() !== '' || 
+        tempFormula.trim() !== '' || 
+        tempNotes.trim() !== '' || 
+        photoBefore !== null || 
+        photoAfter !== null;
+
+    if (hasUnsavedData) {
+        Alert.alert(
+            "¿Descartar cambios?",
+            "Si salís ahora, se perderán los datos ingresados.",
+            [
+                { text: "Seguir editando", style: "cancel" },
+                { 
+                    text: "Descartar", 
+                    style: "destructive", 
+                    onPress: () => setCreateModalVisible(false) 
+                }
+            ]
+        );
+    } else {
+        
+        setCreateModalVisible(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    Alert.alert(
+        "¿Cancelar edición?",
+        "Los cambios que hiciste no se guardarán.",
+        [
+            { text: "Seguir editando", style: "cancel" },
+            { 
+                text: "Salir sin guardar", 
+                style: "destructive", 
+                onPress: () => setEditModalVisible(false) 
+            }
+        ]
+    );
   };
 
   return (
@@ -442,7 +520,7 @@ export default function ClientDetailScreen() {
         animationType="slide"
         transparent={true}
         visible={editModalVisible}
-        onRequestClose={() => setEditModalVisible(false)}
+        onRequestClose={handleCancelEdit}
       >
         <KeyboardAvoidingView 
           behavior={Platform.OS === "ios" ? "padding" : "height"} 
@@ -452,13 +530,48 @@ export default function ClientDetailScreen() {
             <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={styles.modalTitle}>Editar Ficha</Text>
             <Text style={styles.inputLabel}>Servicio:</Text>
-            <TextInput style={styles.input} value={tempService} onChangeText={setTempService} />
+            <TextInput style=
+              {styles.input}
+              value={tempService}
+              onChangeText={setTempService} 
+              maxLength={255}
+              />
+            <Text style={[styles.charCounter, tempService.length >= 250 && styles.charCounterWarning]}>
+                {tempService.length}/255
+            </Text>
+
             <Text style={styles.inputLabel}>Fecha (YYYY-MM-DD):</Text>
-            <TextInput style={styles.input} value={tempDate} onChangeText={setTempDate} />
+            <TextInput 
+            style={styles.input} 
+            value={tempDate} 
+            onChangeText={setTempDate} 
+            maxLength={10}
+            keyboardType="numbers-and-punctuation"
+            />
+
             <Text style={styles.inputLabel}>Fórmula:</Text>
-            <TextInput style={[styles.input, styles.textArea]} value={tempFormula} onChangeText={setTempFormula} multiline />
+            <TextInput 
+            style={[styles.input, styles.textArea]} 
+            value={tempFormula} 
+            onChangeText={setTempFormula} 
+            multiline 
+            maxLength={255}
+            />
+            <Text style={[styles.charCounter, tempFormula.length >= 250 && styles.charCounterWarning]}>
+                {tempFormula.length}/255
+            </Text>
+
             <Text style={styles.inputLabel}>Notas:</Text>
-            <TextInput style={[styles.input, styles.textArea]} value={tempNotes} onChangeText={setTempNotes} multiline />
+            <TextInput 
+            style={[styles.input, styles.textArea]} 
+            value={tempNotes} 
+            onChangeText={setTempNotes} 
+            multiline
+            maxLength={500}
+            />
+            <Text style={[styles.charCounter, tempNotes.length >= 490 && styles.charCounterWarning]}>
+                {tempNotes.length}/500
+            </Text>
 
             <Text style={styles.inputLabel}>Fotos (Opcional):</Text>
             <View style={styles.photoButtonsContainer}>
@@ -487,7 +600,7 @@ export default function ClientDetailScreen() {
             </View>
 
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => setEditModalVisible(false)}>
+              <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={handleCancelEdit}>
                 <Text style={styles.buttonText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={handleSaveEdit}>
@@ -504,7 +617,7 @@ export default function ClientDetailScreen() {
         animationType="slide"
         transparent={true}
         visible={createModalVisible}
-        onRequestClose={() => setCreateModalVisible(false)}
+        onRequestClose={handleCancelCreate}
       >
         <KeyboardAvoidingView 
           behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -520,14 +633,19 @@ export default function ClientDetailScreen() {
                 placeholder="Ej: Color, Corte, Nutrición"
                 value={tempService} 
                 onChangeText={setTempService} 
+                maxLength={255}
             />
-            
+            <Text style={[styles.charCounter, tempService.length >= 250 && styles.charCounterWarning]}>
+              {tempService.length}/255
+            </Text>
+
             <Text style={styles.inputLabel}>Fecha (YYYY-MM-DD):</Text>
             <TextInput 
                 style={styles.input} 
                 placeholder="Ej: 2024-01-20"
                 value={tempDate} 
                 onChangeText={setTempDate} 
+                maxLength={10}
             />
             
             <Text style={styles.inputLabel}>Fórmula:</Text>
@@ -537,7 +655,11 @@ export default function ClientDetailScreen() {
                 value={tempFormula} 
                 onChangeText={setTempFormula} 
                 multiline 
+                maxLength={255}
             />
+            <Text style={[styles.charCounter, tempFormula.length >= 250 && styles.charCounterWarning]}>
+                {tempFormula.length}/255
+            </Text>
             
             <Text style={styles.inputLabel}>Notas:</Text>
             <TextInput 
@@ -546,7 +668,11 @@ export default function ClientDetailScreen() {
                 value={tempNotes} 
                 onChangeText={setTempNotes} 
                 multiline 
+                maxLength={500}
             />
+            <Text style={[styles.charCounter, tempNotes.length >= 490 && styles.charCounterWarning]}>
+                {tempNotes.length}/500
+            </Text>
 
             <Text style={styles.inputLabel}>Fotos (Opcional):</Text>
             <View style={styles.photoButtonsContainer}>
@@ -572,7 +698,7 @@ export default function ClientDetailScreen() {
             </View>
 
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => setCreateModalVisible(false)}>
+              <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={handleCancelCreate}>
                 <Text style={styles.buttonText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.button, styles.saveButton, isSubmitting && {opacity: 0.5, backgroundColor: '#999'  }]} onPress={handleCreateSheet} disabled={isSubmitting}>
@@ -796,5 +922,17 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  charCounter: {
+    textAlign: 'right',
+    fontSize: 11,
+    color: '#999',
+    marginTop: -10, 
+    marginBottom: 10,
+    marginRight: 5,
+  },
+  charCounterWarning: {
+    color: '#e53935', 
+    fontWeight: 'bold',
   },
 });
