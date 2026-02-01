@@ -1,6 +1,6 @@
 import { useLocalSearchParams, Stack } from 'expo-router';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert, Image, ScrollView,KeyboardAvoidingView, Platform} from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert, Image, ScrollView, KeyboardAvoidingView, Platform, RefreshControl} from 'react-native';
 import { useState, useEffect } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
@@ -22,6 +22,8 @@ export default function ClientDetailScreen() {
   const { id } = useLocalSearchParams(); 
   const [sheets, setSheets] = useState<TechnicalSheet[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // -- State for EDITING functionality --
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -130,6 +132,13 @@ export default function ClientDetailScreen() {
    }
   };
 
+  // -- REFRESH HANDLER --
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchSheets();
+    setRefreshing(false);
+  };
+
   // // --- IMAGE PICKER HANDLER ---
   const pickImage = async (type: 'before' | 'after') => {
      Alert.alert(
@@ -183,14 +192,23 @@ export default function ClientDetailScreen() {
     setTempService(sheet.service);
     setTempFormula(sheet.formula);
     setTempNotes(sheet.notes || '');
-    setTempDate(sheet.date);
+    const cleanDate = sheet.date.split('T')[0];
+    setTempDate(cleanDate);
     setPhotoBefore(sheet.photoBefore || null);
     setPhotoAfter(sheet.photoAfter || null);
     setEditModalVisible(true);
+    
   };
 
   const handleSaveEdit = async () => {
     if (!editingSheet) return;
+
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(tempDate)) {
+        Alert.alert("Error", "La fecha debe tener el formato YYYY-MM-DD");
+        return;
+    }
+    
     try {
       const formData = new FormData();
       formData.append('service', tempService);
@@ -251,10 +269,25 @@ export default function ClientDetailScreen() {
 
   // -- CREATE SHEET HANDLER --
   const handleCreateSheet = async () => {
+
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(tempDate)) {
+        Alert.alert("Error", "La fecha debe tener el formato YYYY-MM-DD");
+        return;
+    }
     if (!tempService || !tempFormula) {
         Alert.alert("Error", "Servicio y Fórmula son obligatorios");
         return;
     }
+
+    const checkDate = new Date(tempDate);
+    if (isNaN(checkDate.getTime())) {
+        Alert.alert("Error", "La fecha ingresada no es válida");
+        return;
+    }
+
+    if (isSubmitting) return; 
+    setIsSubmitting(true);
 
     try {
   
@@ -305,6 +338,8 @@ export default function ClientDetailScreen() {
     } catch (error) {
         console.error("Error creating sheet:", error);
         Alert.alert("Error", "No se pudo crear la ficha técnica");
+    } finally {
+        setIsSubmitting(false);
     }
   };
 
@@ -319,6 +354,9 @@ export default function ClientDetailScreen() {
           data={sheets}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={{ padding: 15 }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#6200ee']} />
+          }
           
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
@@ -340,6 +378,7 @@ export default function ClientDetailScreen() {
                   </Text>
                   
                   {/* Edit button */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <TouchableOpacity onPress={() => handleEditPress(item)} style={styles.iconButton}>
                     <FontAwesome5 name="edit" size={18} color="#6200ee" />
                   </TouchableOpacity>
@@ -348,6 +387,7 @@ export default function ClientDetailScreen() {
                   <TouchableOpacity onPress={() => handleDeleteSheet(item.id)} style={[styles.iconButton, { marginLeft: 10 }]}>
                     <FontAwesome5 name="trash-alt" size={18} color="#ee2626" />
                   </TouchableOpacity>
+                </View>
                 </View>
               </View>
               
@@ -535,7 +575,7 @@ export default function ClientDetailScreen() {
               <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => setCreateModalVisible(false)}>
                 <Text style={styles.buttonText}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={handleCreateSheet}>
+              <TouchableOpacity style={[styles.button, styles.saveButton, isSubmitting && {opacity: 0.5, backgroundColor: '#999'  }]} onPress={handleCreateSheet} disabled={isSubmitting}>
                 <Text style={styles.buttonText}>Crear</Text>
               </TouchableOpacity>
             </View>
