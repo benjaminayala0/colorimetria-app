@@ -4,7 +4,14 @@
     "slug": "chroma-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+
+    "splash": {
+      "image": "./assets/images/v2.png", 
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+
+    "icon": "./assets/images/iconv1.png",
     "scheme": "chroma",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -13,7 +20,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
+        "foregroundImage": "./assets/images/iconv1.png",
         "backgroundColor": "#FFFFFF"
       },
       "edgeToEdgeEnabled": true,
@@ -54,8 +61,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
+          "image": "./assets/images/v2.png",
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
           "dark": {
