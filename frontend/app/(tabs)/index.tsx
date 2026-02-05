@@ -58,15 +58,22 @@ export default function HomeScreen() {
     }
 
     try {
-      await api.post('/api/clients', {
+      const response = await api.post('/api/clients', {
         fullname: newClientName,
         phone: newClientPhone,
       });
 
+      const newClient = response.data.client;
+
+      setClients(listBefore =>{
+        const newList = [...listBefore, newClient];
+        newList.sort((a, b) => a.fullname.localeCompare(b.fullname));
+        return newList;
+      })
+
       setModalVisible(false);
       setNewClientName('');
       setNewClientPhone('');
-      fetchClients(); 
       Alert.alert("¡Éxito!", "Clienta agregada correctamente");
 
     } catch (error) {
@@ -96,9 +103,14 @@ export default function HomeScreen() {
             phone: editPhone,
         });
 
+        setClients(prevClients => prevClients.map(client =>
+            client.id === editingClient.id
+                ? { ...client, fullname: editName, phone: editPhone }
+                : client
+        ));
+
         setEditModalVisible(false);
         Alert.alert("¡Listo!", "Cliente actualizado correctamente");
-        fetchClients(); 
 
     } catch (error) {
         console.error("Error al editar:", error);
@@ -117,12 +129,15 @@ export default function HomeScreen() {
           text: "Eliminar", 
           style: "destructive",
           onPress: async () => {
+
+            const backup = [...clients];
+            setClients(prev => prev.filter(c => c.id !== clientId));
+
             try {
-              await api.delete(`/api/clients/${clientId}`);
-              fetchClients(); 
+              await api.delete(`/api/clients/${clientId}`); 
               Alert.alert("Eliminado", "Cliente eliminado correctamente.");
             } catch (error) {
-              console.error(error);
+              setClients(backup); 
               Alert.alert("Error", "No se pudo eliminar al cliente.");
             }
           }
