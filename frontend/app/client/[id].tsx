@@ -172,10 +172,14 @@ export default function ClientDetailScreen() {
           text: "Eliminar", 
           style: "destructive",
           onPress: async () => {
+
+            const backup = [...sheets];
+
+            setSheets(prev => prev.filter(s => s.id !== sheetId));
+
             try {
               await api.delete(`/api/sheets/${sheetId}`); 
               Alert.alert("Eliminado", "La ficha se borró correctamente.");
-              fetchSheets(); 
             } catch (error) {
               console.error(error);
               Alert.alert("Error", "No se pudo borrar la ficha.");

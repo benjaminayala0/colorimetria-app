@@ -13,8 +13,14 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: 'colorimetria-fichas',
-    allowed_formats: ['jpg', 'png', 'jpeg'],
+    allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
   },
+
+  transformation: [
+    { width: 1280, crop: 'limit'},
+    { quality: 'auto'},
+    { fetch_format: 'auto'}
+  ]
 });
 
 const upload = multer({ storage: storage });

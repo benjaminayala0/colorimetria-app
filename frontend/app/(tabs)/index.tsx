@@ -168,7 +168,7 @@ export default function HomeScreen() {
         data={clients}
         keyExtractor={(item) => item.id.toString()}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No hay clientas cargadas aún.</Text>
+          <Text style={styles.emptyText}>No hay clientes cargados aún.</Text>
         }
         renderItem={({ item }) => (
           <View style={styles.cardContainer}>
@@ -224,7 +224,7 @@ export default function HomeScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Nueva Clienta</Text>
+            <Text style={styles.modalTitle}>Nueva Cliente</Text>
 
             <Text style={styles.inputLabel}>Nombre Completo:</Text>
             <TextInput 
@@ -265,7 +265,7 @@ export default function HomeScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Editar Clienta</Text>
+            <Text style={styles.modalTitle}>Editar Cliente</Text>
             <Text style={styles.inputLabel}>Nombre Completo:</Text>
             <TextInput 
               style={styles.input} 
