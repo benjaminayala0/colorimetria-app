@@ -1,6 +1,7 @@
+import { styles } from '../../src/styles/calendar-styles';
 import { useState, useEffect, useCallback } from 'react';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
-import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, FlatList, Modal, TextInput, Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { Text, View, SafeAreaView, TouchableOpacity, FlatList, Modal, TextInput, Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, Linking } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from 'expo-router';
@@ -30,6 +31,8 @@ export default function AgendaScreen() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showDatePicker, setShowDatePicker] = useState(false);     
+  const [showEditDatePicker, setShowEditDatePicker] = useState(false);
 
   // States for the create/edit modal
   const [modalVisible, setModalVisible] = useState(false);
@@ -103,7 +106,6 @@ export default function AgendaScreen() {
         return 'past';
     }
 
-   
     const diffInMilliseconds = apptDate.getTime() - now.getTime();
     const diffInMinutes = diffInMilliseconds / (1000 * 60);
 
@@ -145,6 +147,40 @@ export default function AgendaScreen() {
       setSelectedTime(selectedDate);
       setFormTime(formatTimeToString(selectedDate));
     }
+  };
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+   
+    if (Platform.OS === 'android') setShowDatePicker(false);
+    
+    if (selectedDate) {
+      const dateString = selectedDate.toISOString().split('T')[0];
+      setFormDate(dateString);
+    }
+  };
+
+  const handleEditDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') setShowEditDatePicker(false);
+    
+    if (selectedDate) {
+      const dateString = selectedDate.toISOString().split('T')[0];
+      setFormDate(dateString);
+    }
+  };
+
+  // Fuction for formating dates
+  const formatDateToText = (dateString: string) => {
+    if (!dateString) return '';
+    
+    const [year, month, day] = dateString.split('-').map(Number);
+   
+    const localDate = new Date(year, month - 1, day);
+    
+    return localDate.toLocaleDateString('es-ES', { 
+      weekday: 'long', 
+      day: 'numeric', 
+      month: 'long' 
+    }).replace(/^\w/, c => c.toUpperCase());
   };
 
   // function to create an appointment
@@ -243,6 +279,24 @@ export default function AgendaScreen() {
     );
   };
 
+  const handleWhatsApp = (item: Appointment) => {
+    const fechaTexto = formatDateToText(item.dateString);
+    
+    const mensaje = `Hola ${item.clientName}! 👋 Te escribo para recordarte tu turno del *${fechaTexto}* a las *${item.time} hs* para *${item.service}*. \n\nPor favor confirmame si podés venir. Gracias! ✨`;
+
+    const url = `whatsapp://send?text=${encodeURIComponent(mensaje)}`;
+
+    Linking.canOpenURL(url)
+      .then((supported) => {
+        if (!supported) {
+          Alert.alert('Error', 'No se pudo abrir WhatsApp. Verificá que esté instalado.');
+        } else {
+          return Linking.openURL(url);
+        }
+      })
+      .catch((err) => console.error('Error al abrir WhatsApp', err));
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -266,7 +320,7 @@ export default function AgendaScreen() {
 
       <View style={styles.dayHeader}>
         <Text style={styles.dayTitle}>
-            Turnos del: {selectedDate}
+           {formatDateToText(selectedDate)} 
         </Text>
       </View>
 
@@ -314,6 +368,14 @@ export default function AgendaScreen() {
                       <Text style={styles.serviceText}>{item.service}</Text>
                   </View>
                   <View style={styles.actionsContainer}>
+
+                  <TouchableOpacity 
+                      style={styles.iconButton}
+                      onPress={() => {handleWhatsApp(item)}}
+                    >
+                      <FontAwesome5 name="whatsapp" size={18} color={status === 'past' ? "#ccc" : "#25D366"} />
+                    </TouchableOpacity>
+
                     <TouchableOpacity 
                       style={styles.iconButton}
                       onPress={() => handleOpenEditModal(item)}
@@ -355,15 +417,11 @@ export default function AgendaScreen() {
           <View style={styles.modalContent}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={styles.modalTitle}>Nuevo Turno</Text>
-              
-              <Text style={styles.inputLabel}>Fecha (YYYY-MM-DD):</Text>
-              <TextInput 
-                style={styles.input}
-                placeholder="Ej: 2024-05-20"
-                value={formDate}
-                onChangeText={setFormDate}
-              />
 
+              <Text style={{ textAlign: 'center', fontSize: 16, color: '#6200ee', marginBottom: 15, fontWeight: 'bold' }}>
+              📅 {formatDateToText(formDate)}
+              </Text>
+          
               <Text style={styles.inputLabel}>Hora:</Text>
               <TouchableOpacity 
                 style={styles.timeButton}
@@ -443,13 +501,26 @@ export default function AgendaScreen() {
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={styles.modalTitle}>Editar Turno</Text>
               
-              <Text style={styles.inputLabel}>Fecha (YYYY-MM-DD):</Text>
-              <TextInput 
-                style={styles.input}
-                value={formDate}
-                onChangeText={setFormDate}
-              />
+              <Text style={styles.inputLabel}>Fecha:</Text>
+              <TouchableOpacity 
+                style={styles.timeButton} 
+                onPress={() => setShowEditDatePicker(true)}
+                >
+                <Text style={styles.timeButtonText}>
+                  📅 {formDate ? formatDateToText(formDate) : 'Seleccionar fecha'}
+                </Text>
+              </TouchableOpacity>
 
+              {showEditDatePicker && (
+                <DateTimePicker
+                  value={new Date(formDate ? formDate + 'T12:00:00' : Date.now())} // Truco: T12:00:00 evita errores de zona horaria
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={handleEditDateChange}
+                  locale="es-ES"
+                />
+              )}
+              
               <Text style={styles.inputLabel}>Hora:</Text>
               <TouchableOpacity 
                 style={styles.timeButton}
@@ -515,197 +586,3 @@ export default function AgendaScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  header: {
-    padding: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  dayHeader: {
-    padding: 15,
-    backgroundColor: '#eaddff', 
-  },
-  dayTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#6200ee',
-  },
-  emptyText: {
-    textAlign: 'center',
-    marginTop: 30,
-    color: '#999',
-    fontSize: 16,
-  },
-  card: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
-    alignItems: 'center'
-  },
-  timeContainer: {
-    backgroundColor: '#f0f0f0',
-    padding: 10,
-    borderRadius: 8,
-    marginRight: 15,
-  },
-  timeText: {
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  infoContainer: {
-    flex: 1,
-  },
-  clientName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  serviceText: {
-    color: '#666',
-  },
-  fab: {
-    position: 'absolute',
-    width: 60,
-    height: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    right: 20,
-    bottom: 20,
-    backgroundColor: '#6200ee',
-    borderRadius: 30,
-    elevation: 8,
-  },
-  fabText: {
-    fontSize: 30,
-    color: '#fff',
-    fontWeight: 'bold',
-    marginTop: -2, 
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    color: '#666',
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  iconButton: {
-    padding: 10,
-    marginLeft: 5,
-  },
-  // Styles for the modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    width: '90%',
-    maxHeight: '90%',
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    textAlign: 'center',
-    color: '#333',
-  },
-  inputLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 5,
-    fontWeight: 'bold',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 15,
-    fontSize: 16,
-    backgroundColor: '#fafafa',
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
-  },
-  button: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginHorizontal: 5,
-  },
-  cancelButton: {
-    backgroundColor: '#ccc',
-  },
-  saveButton: {
-    backgroundColor: '#6200ee',
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  // Time picker button styles
-  timeButton: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 15,
-    backgroundColor: '#fafafa',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  timeButtonText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  timePickerCloseButton: {
-    backgroundColor: '#6200ee',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 15,
-  },
-  timePickerCloseText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-});
