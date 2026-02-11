@@ -6,8 +6,6 @@
     "orientation": "portrait",
 
     "splash": {
-      "image": "./assets/images/v2.png", 
-      "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
 
@@ -76,8 +74,6 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/v2.png",
-          "resizeMode": "contain",
           "backgroundColor": "#ffffff",
           "dark": {
             "backgroundColor": "#000000"

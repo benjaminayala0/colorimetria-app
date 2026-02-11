@@ -361,20 +361,19 @@ export default function AgendaScreen() {
 
   const handleWhatsApp = (item: Appointment) => {
     const fechaTexto = formatDateToText(item.dateString);
-    
     const mensaje = `Hola ${item.clientName}! 👋 Te escribo para recordarte tu turno del *${fechaTexto}* a las *${item.time} hs* para *${item.service}*. \n\nPor favor confirmame si podés venir. Gracias! ✨`;
+
 
     const url = `whatsapp://send?text=${encodeURIComponent(mensaje)}`;
 
-    Linking.canOpenURL(url)
-      .then((supported) => {
-        if (!supported) {
-          Alert.alert('Error', 'No se pudo abrir WhatsApp. Verificá que esté instalado.');
-        } else {
-          return Linking.openURL(url);
-        }
-      })
-      .catch((err) => console.error('Error al abrir WhatsApp', err));
+   
+    Linking.openURL(url).catch((err) => {
+      console.error('Error al abrir WhatsApp:', err);
+      Alert.alert(
+        'Error', 
+        'No se pudo abrir WhatsApp. Asegurate de tenerlo instalado.'
+      );
+    });
   };
 
   
