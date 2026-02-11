@@ -1,11 +1,17 @@
 import { styles } from '../../src/styles/calendar-styles';
 import { useState, useEffect, useCallback } from 'react';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
-import { Text, View, SafeAreaView, TouchableOpacity, FlatList, Modal, TextInput, Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, Linking } from 'react-native';
+import { Text, View, SafeAreaView, TouchableOpacity, FlatList, Modal, TextInput, Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, Linking, LogBox } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from 'expo-router';
+import * as Notifications from 'expo-notifications';
 import api from '../../src/services/api';
+
+
+LogBox.ignoreLogs([
+  'expo-notifications: Android Push notifications',
+]);
 
 // Configuration for Spanish
 LocaleConfig.locales['es'] = {
@@ -27,12 +33,50 @@ interface Appointment {
   clientId?: number;
 }
 
+
+Notifications.setNotificationHandler({
+  handleNotification: async (notification) => {
+    return {
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    };
+  },
+});
+
+
 export default function AgendaScreen() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDatePicker, setShowDatePicker] = useState(false);     
   const [showEditDatePicker, setShowEditDatePicker] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { status } = await Notifications.requestPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permiso denegado', 'No se pudieron obtener los permisos para notificaciones.');
+          return;
+        }
+
+        if (Platform.OS === 'android') {
+          await Notifications.setNotificationChannelAsync('default', {
+            name: 'default',
+            importance: Notifications.AndroidImportance.MAX, 
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: '#FF231F7C',
+          });
+        }
+
+      } catch (error) {
+        console.log("Error inicializando notificaciones:", error);
+      }
+    })();
+  }, []);
+
 
   // States for the create/edit modal
   const [modalVisible, setModalVisible] = useState(false);
@@ -198,6 +242,42 @@ export default function AgendaScreen() {
         service: formService
       });
 
+      try {
+        const [year, month, day] = formDate.split('-').map(Number);
+        const [hours, minutes] = formTime.split(':').map(Number);
+
+       // Calculate the trigger time for the notification (15 minutes before the appointment)
+        const appointmentTime = new Date(year, month - 1, day, hours, minutes);
+        const triggerTime = new Date(appointmentTime.getTime() - 15 * 60 * 1000); 
+
+        // Diagnostic logs for notification scheduling
+        const now = Date.now();
+        const secondsUntilTrigger = Math.ceil((triggerTime.getTime() - now) / 1000);
+
+        if (secondsUntilTrigger > 0) {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: "⏰ Próximo Turno",
+              body: `Tenés a ${formClientName} en 15 min (${formService})`,
+              sound: true,
+              
+              ...(Platform.OS === 'android' && {
+                channelId: 'default',
+                priority: Notifications.AndroidNotificationPriority.HIGH,
+                vibrate: [0, 250, 250, 250],
+              }),
+            },
+            trigger: {
+              type: 'timeInterval',
+              seconds: secondsUntilTrigger,
+              repeats: false,
+            } as any,
+          });
+        }
+      } catch (notifError) {
+        console.log("Error al programar notificación (no crítico):", notifError);
+      }
+
       setModalVisible(false);
       // Enhanced alert with appointment details
       Alert.alert(
@@ -297,6 +377,7 @@ export default function AgendaScreen() {
       .catch((err) => console.error('Error al abrir WhatsApp', err));
   };
 
+  
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -513,7 +594,7 @@ export default function AgendaScreen() {
 
               {showEditDatePicker && (
                 <DateTimePicker
-                  value={new Date(formDate ? formDate + 'T12:00:00' : Date.now())} // Truco: T12:00:00 evita errores de zona horaria
+                  value={new Date(formDate ? formDate + 'T12:00:00' : Date.now())} 
                   mode="date"
                   display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                   onChange={handleEditDateChange}
@@ -582,7 +663,6 @@ export default function AgendaScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-
     </SafeAreaView>
   );
 }
