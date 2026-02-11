@@ -1,6 +1,8 @@
 import { useLocalSearchParams, Stack } from 'expo-router';
+import { styles } from '../../src/styles/clients-styles';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert, Image, ScrollView, KeyboardAvoidingView, Platform, RefreshControl} from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useState, useEffect } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
@@ -41,6 +43,8 @@ export default function ClientDetailScreen() {
   // -- Image States for Create Modal --
   const [photoBefore, setPhotoBefore] = useState<string | null>(null);
   const [photoAfter, setPhotoAfter] = useState<string | null>(null);
+  const [showCreateDatePicker, setShowCreateDatePicker] = useState(false);
+  const [showEditDatePicker, setShowEditDatePicker] = useState(false);
 
   // Fetch technical sheets for the client when component mounts
   const fetchSheets = async () => {
@@ -132,6 +136,37 @@ export default function ClientDetailScreen() {
    }
   };
 
+  const formatDateToText = (dateString: string) => {
+    if (!dateString) {
+      return '';
+    }
+    const [year, month, day] = dateString.split('-').map(Number);
+    const localDate = new Date(year, (month || 1) - 1, day || 1);
+    return localDate
+      .toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+      .replace(/^\w/, (c) => c.toUpperCase());
+  };
+
+  const handleCreateDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowCreateDatePicker(false);
+    }
+    if (selectedDate) {
+      const dateString = selectedDate.toISOString().split('T')[0];
+      setTempDate(dateString);
+    }
+  };
+
+  const handleEditDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowEditDatePicker(false);
+    }
+    if (selectedDate) {
+      const dateString = selectedDate.toISOString().split('T')[0];
+      setTempDate(dateString);
+    }
+  };
+
   // -- REFRESH HANDLER --
   const onRefresh = async () => {
     setRefreshing(true);
@@ -200,6 +235,7 @@ export default function ClientDetailScreen() {
     setTempDate(cleanDate);
     setPhotoBefore(sheet.photoBefore || null);
     setPhotoAfter(sheet.photoAfter || null);
+    setShowEditDatePicker(false);
     setEditModalVisible(true);
     
   };
@@ -227,7 +263,7 @@ export default function ClientDetailScreen() {
 
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(tempDate)) {
-        Alert.alert("Error", "La fecha debe tener el formato YYYY-MM-DD");
+      Alert.alert("Error", "Seleccioná una fecha válida");
         return;
     }
     
@@ -286,6 +322,7 @@ export default function ClientDetailScreen() {
     setTempDate(today);
     setPhotoBefore(null);
     setPhotoAfter(null);
+    setShowCreateDatePicker(false);
     setCreateModalVisible(true);
   };
 
@@ -295,7 +332,7 @@ export default function ClientDetailScreen() {
 
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(tempDate)) {
-        Alert.alert("Error", "La fecha debe tener el formato YYYY-MM-DD");
+      Alert.alert("Error", "Seleccioná una fecha válida");
         return;
     }
     if (!tempService || !tempFormula) {
@@ -336,6 +373,7 @@ export default function ClientDetailScreen() {
         formData.append('service', tempService);
         formData.append('formula', tempFormula);
         formData.append('notes', tempNotes);
+      setShowCreateDatePicker(false);
         formData.append('date', tempDate);
 
         
@@ -400,12 +438,15 @@ export default function ClientDetailScreen() {
                 { 
                     text: "Descartar", 
                     style: "destructive", 
-                    onPress: () => setCreateModalVisible(false) 
+            onPress: () => {
+              setShowCreateDatePicker(false);
+              setCreateModalVisible(false);
+            }
                 }
             ]
         );
     } else {
-        
+      setShowCreateDatePicker(false);
         setCreateModalVisible(false);
     }
   };
@@ -419,10 +460,14 @@ export default function ClientDetailScreen() {
             { 
                 text: "Salir sin guardar", 
                 style: "destructive", 
-                onPress: () => setEditModalVisible(false) 
+          onPress: () => {
+            setShowEditDatePicker(false);
+            setEditModalVisible(false);
+          }
             }
         ]
     );
+    setShowEditDatePicker(false);
   };
 
   return (
@@ -544,14 +589,33 @@ export default function ClientDetailScreen() {
                 {tempService.length}/255
             </Text>
 
-            <Text style={styles.inputLabel}>Fecha (YYYY-MM-DD):</Text>
-            <TextInput 
-            style={styles.input} 
-            value={tempDate} 
-            onChangeText={setTempDate} 
-            maxLength={10}
-            keyboardType="numbers-and-punctuation"
-            />
+            <Text style={styles.inputLabel}>Fecha:</Text>
+            <TouchableOpacity 
+              style={styles.timeButton}
+              onPress={() => setShowEditDatePicker(true)}
+            >
+              <Text style={styles.timeButtonText}>
+                📅 {tempDate ? formatDateToText(tempDate) : 'Seleccionar fecha'}
+              </Text>
+            </TouchableOpacity>
+
+            {showEditDatePicker && (
+              <DateTimePicker
+                value={new Date(tempDate ? `${tempDate}T12:00:00` : Date.now())}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleEditDateChange}
+                locale="es-ES"
+              />
+            )}
+            {Platform.OS === 'ios' && showEditDatePicker && (
+              <TouchableOpacity 
+                style={styles.timePickerCloseButton}
+                onPress={() => setShowEditDatePicker(false)}
+              >
+                <Text style={styles.timePickerCloseText}>Listo</Text>
+              </TouchableOpacity>
+            )}
 
             <Text style={styles.inputLabel}>Fórmula:</Text>
             <TextInput 
@@ -643,14 +707,33 @@ export default function ClientDetailScreen() {
               {tempService.length}/255
             </Text>
 
-            <Text style={styles.inputLabel}>Fecha (YYYY-MM-DD):</Text>
-            <TextInput 
-                style={styles.input} 
-                placeholder="Ej: 2024-01-20"
-                value={tempDate} 
-                onChangeText={setTempDate} 
-                maxLength={10}
-            />
+            <Text style={styles.inputLabel}>Fecha:</Text>
+            <TouchableOpacity 
+              style={styles.timeButton}
+              onPress={() => setShowCreateDatePicker(true)}
+            >
+              <Text style={styles.timeButtonText}>
+                📅 {tempDate ? formatDateToText(tempDate) : 'Seleccionar fecha'}
+              </Text>
+            </TouchableOpacity>
+
+            {showCreateDatePicker && (
+              <DateTimePicker
+                value={new Date(tempDate ? `${tempDate}T12:00:00` : Date.now())}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleCreateDateChange}
+                locale="es-ES"
+              />
+            )}
+            {Platform.OS === 'ios' && showCreateDatePicker && (
+              <TouchableOpacity 
+                style={styles.timePickerCloseButton}
+                onPress={() => setShowCreateDatePicker(false)}
+              >
+                <Text style={styles.timePickerCloseText}>Listo</Text>
+              </TouchableOpacity>
+            )}
             
             <Text style={styles.inputLabel}>Fórmula:</Text>
             <TextInput 
@@ -717,226 +800,3 @@ export default function ClientDetailScreen() {
   );
 }
 
-// Styles for the component
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    marginTop: 50,
-  },
-  emoji: {
-    fontSize: 40,
-    marginBottom: 10,
-  },
-  emptyText: {
-    color: '#666',
-    fontSize: 16,
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
-    borderLeftWidth: 5,
-    borderLeftColor: '#6200ee',
-  },
-  cardHeader: {
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    paddingBottom: 8,
-  },
-  date: {
-    fontSize: 14,
-    color: '#999',
-    fontWeight: 'bold',
-  },
-  serviceBadge: {
-    flexShrink: 1,
-    backgroundColor: '#ede7f6',
-    color: '#6200ee',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 15,
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginRight: 10, 
-  },
-  iconButton: {
-    padding: 5,
-  },
-  label: {
-    fontSize: 12,
-    color: '#aaa',
-    marginTop: 5,
-    textTransform: 'uppercase',
-  },
-  formula: {
-    fontSize: 16,
-    color: '#333',
-    fontWeight: '500',
-    marginBottom: 5,
-  },
-  notes: {
-    fontSize: 14,
-    color: '#555',
-    fontStyle: 'italic',
-  },
-  photosContainer: {
-    flexDirection: 'row',
-    marginTop: 10,
-    gap: 10,
-  },
-  photoWrapper: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  photoLabel: {
-    fontSize: 10,
-    color: '#666',
-    marginBottom: 2,
-  },
-  cardImage: {
-    width: '100%',
-    height: 100,
-    borderRadius: 8,
-    backgroundColor: '#eee',
-    resizeMode: 'cover',
-  },
-  photoButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 15,
-  },
-  photoUploadButton: {
-    width: '48%',
-    height: 100,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderStyle: 'dashed',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  previewImage: {
-    width: '100%',
-    height: '100%',
-  },
-  placeholderImage: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  // -- FAB Styles --
-  fab: {
-    position: 'absolute',
-    width: 60,
-    height: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    right: 20,
-    bottom: 20,
-    backgroundColor: '#6200ee',
-    borderRadius: 30,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-  },
-  fabText: {
-    fontSize: 30,
-    color: '#fff',
-    fontWeight: 'bold',
-    marginTop: -2, 
-  },
-  // -- Modal Styles --
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    width: '90%',
-    maxHeight: '90%', 
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  modalTitle: {
-    flex: 1,
-    marginRight: 10,
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  inputLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 5,
-    fontWeight: 'bold',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 15,
-    fontSize: 16,
-  },
-  textArea: {
-    height: 80,
-    textAlignVertical: 'top',
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
-  },
-  button: {
-    flex: 1,
-    padding: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginHorizontal: 5,
-  },
-  cancelButton: {
-    backgroundColor: '#ccc',
-  },
-  saveButton: {
-    backgroundColor: '#6200ee',
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  charCounter: {
-    textAlign: 'right',
-    fontSize: 11,
-    color: '#999',
-    marginTop: -10, 
-    marginBottom: 10,
-    marginRight: 5,
-  },
-  charCounterWarning: {
-    color: '#e53935', 
-    fontWeight: 'bold',
-  },
-});
