@@ -2,8 +2,8 @@ import { styles } from '../../src/styles/index-styles';
 import { StyleSheet, Text, View, FlatList, Platform, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert} from 'react-native';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter, useFocusEffect } from 'expo-router'; 
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router'; 
 import api from '../../src/services/api'; 
 
 // Define the Client type
@@ -24,6 +24,8 @@ export default function HomeScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [newClientName, setNewClientName] = useState('');
   const [newClientPhone, setNewClientPhone] = useState('');
+  const params = useLocalSearchParams();
+  const searchInputRef = useRef<TextInput>(null);
 
   // -- State for "Edit Client" Modal --
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -31,7 +33,8 @@ export default function HomeScreen() {
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
 
-
+  const [searchText, setSearchText] = useState('');
+  
   // Function to fetch clients
   const fetchClients = async () => {
     try {
@@ -49,6 +52,21 @@ export default function HomeScreen() {
     useCallback(() => {
       fetchClients();
     }, [])
+  );
+
+  // Auto focus search input if param is set
+  useEffect(() => {
+    if (params.autoFocus === 'true') {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100);
+      router.setParams({ autoFocus: '' });
+    }
+  }, [params, router]);
+
+  const filteredClients = clients.filter(client =>
+    client.fullname.toLowerCase().includes(searchText.toLowerCase()) ||
+    (client.phone && client.phone.includes(searchText))
   );
 
   // -- Handler to Create Client --
@@ -163,13 +181,32 @@ export default function HomeScreen() {
         <Text style={{ fontSize: 14, color: '#6B7280' }}>
           Gestioná tus {clients.length} registros activos
         </Text>
+        
+        <View style={styles.searchContainer}>
+            <FontAwesome5 name="search" size={16} color="#999" style={styles.searchIcon} />
+            <TextInput 
+                ref={searchInputRef}
+                style={styles.searchInput}
+                placeholder="Buscar por nombre..."
+                placeholderTextColor="#999"
+                value={searchText}
+                onChangeText={setSearchText}
+            />
+            {searchText.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchText('')}>
+                    <FontAwesome5 name="times-circle" size={16} color="#999" />
+                </TouchableOpacity>
+            )}
+        </View>
       </View>
 
       <FlatList
-        data={clients}
+        data={filteredClients}
         keyExtractor={(item) => item.id.toString()}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No hay clientes cargados aún.</Text>
+          <Text style={styles.emptyText}>
+              {searchText ? "No se encontraron clientes." : "No hay clientes guardados."}
+          </Text>
         }
         renderItem={({ item }) => (
           <View style={styles.cardContainer}>

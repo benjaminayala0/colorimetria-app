@@ -17,6 +17,15 @@ export default function TabLayout() {
         headerShown: false,
         tabBarButton: HapticTab,
       }}>
+
+      <Tabs.Screen
+        name="home"
+        options={{
+          title: 'Início',
+          tabBarIcon: ({ color }) => <FontAwesome name="home" size={28} color={color} />,
+        }}
+      />  
+
       <Tabs.Screen
         name="index"
         options={{
