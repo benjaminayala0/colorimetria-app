@@ -7,27 +7,31 @@ const TechnicalSheet = sequelize.define('TechnicalSheet', {
         primaryKey: true,
         autoIncrement: true
     },
-    date: { 
+    date: {
         type: DataTypes.DATEONLY,
         defaultValue: DataTypes.NOW
     },
-    service: { 
+    service: {
         type: DataTypes.STRING,
         allowNull: false
+    },
+    price: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true
     },
     formula: {
         type: DataTypes.TEXT,
         allowNull: false
     },
-    notes: { 
+    notes: {
         type: DataTypes.TEXT,
         allowNull: true
     },
-    photoBefore: { 
+    photoBefore: {
         type: DataTypes.STRING,
         allowNull: true
     },
-    photoAfter: { 
+    photoAfter: {
         type: DataTypes.STRING,
         allowNull: true
     }

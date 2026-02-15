@@ -10,8 +10,8 @@ exports.createAppointment = async (req, res) => {
         // Validation: Required fields
 
         if (!dateString || !time || !clientName || (!service && !serviceId)) {
-            return res.status(400).json({ 
-                error: 'Fecha, hora, nombre del cliente y servicio o serviceId son obligatorios' 
+            return res.status(400).json({
+                error: 'Fecha, hora, nombre del cliente y servicio o serviceId son obligatorios'
             });
         }
 
@@ -19,7 +19,7 @@ exports.createAppointment = async (req, res) => {
         let finalPrice = price;
         let finalServiceId = serviceId;
 
-        // Si viene serviceId, buscar el servicio y usar su nombre y precio
+        // If serviceId is provided, find the service and use its name and price
         if (serviceId) {
             const foundService = await Service.findByPk(serviceId);
             if (!foundService) {
@@ -69,7 +69,7 @@ exports.getAllAppointments = async (req, res) => {
 exports.getAppointmentsByDate = async (req, res) => {
     try {
         const { date } = req.params;
-        
+
         const appointments = await Appointment.findAll({
             where: { dateString: date },
             order: [['time', 'ASC']]
@@ -136,7 +136,7 @@ exports.getDashboardSummary = async (req, res) => {
     try {
         const now = new Date();
         const todayString = now.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
-        const timeString = now.toLocaleTimeString('en-US', { 
+        const timeString = now.toLocaleTimeString('en-US', {
             timeZone: 'America/Argentina/Buenos_Aires',
             hour12: false,
             hour: '2-digit',
@@ -148,11 +148,11 @@ exports.getDashboardSummary = async (req, res) => {
         const nextAppointment = await Appointment.findOne({
             where: {
                 [Op.or]: [
-                   
-                    { 
-                        dateString: { [Op.gt]: todayString } 
+
+                    {
+                        dateString: { [Op.gt]: todayString }
                     },
-                    { 
+                    {
                         dateString: todayString,
                         time: { [Op.gte]: timeString }
                     }

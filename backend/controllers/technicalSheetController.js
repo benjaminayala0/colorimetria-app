@@ -2,38 +2,39 @@ const TechnicalSheet = require('../models/TechnicalSheet');
 
 // 1. Create a new Technical Sheet
 exports.createSheet = async (req, res) => {
-    
+
     try {
-        const { clientId, service, formula, notes, date } = req.body;
+        const { clientId, service, formula, notes, date, price } = req.body;
 
         if (!clientId || !formula) {
-            return res.status(400).json({ 
-                error: 'El Cliente ID y la fórmula son obligatorios' 
+            return res.status(400).json({
+                error: 'El Cliente ID y la fórmula son obligatorios'
             });
         }
 
         // Handle uploaded images
         let photoBefore = null;
         let photoAfter = null;
-        
+
         // verify if files are uploaded
-        if (req.files){
-            if (req.files.photoBefore){
+        if (req.files) {
+            if (req.files.photoBefore) {
                 photoBefore = req.files.photoBefore[0].path;
             }
-            if (req.files.photoAfter){
+            if (req.files.photoAfter) {
                 photoAfter = req.files.photoAfter[0].path;
             }
         }
-        
+
         // Create the new technical sheet record
         const newSheet = await TechnicalSheet.create({
             clientId,
             service,
+            price,
             formula,
             notes,
             date,
-            photoBefore: photoBefore,   
+            photoBefore: photoBefore,
             photoAfter: photoAfter
         });
 
@@ -46,17 +47,17 @@ exports.createSheet = async (req, res) => {
         console.error(error);
         res.status(500).json({ error: 'Error del servidor' });
     }
-    
+
 };
 
 // 2. Get all sheets for a SPECIFIC Client
 exports.getSheetsByClient = async (req, res) => {
     try {
-        const { clientId } = req.params; 
+        const { clientId } = req.params;
 
         const sheets = await TechnicalSheet.findAll({
-            where: { clientId: clientId }, 
-            order: [['date', 'DESC']] 
+            where: { clientId: clientId },
+            order: [['date', 'DESC']]
         });
 
         res.status(200).json(sheets);

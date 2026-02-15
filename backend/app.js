@@ -30,7 +30,7 @@ app.use('/api/services', serviceRoutes);
 
 // --- DEFINING RELATIONS (Associations) ---
 // One Client has many Technical Sheets
-Client.hasMany(TechnicalSheet, { foreignKey: 'clientId' }); 
+Client.hasMany(TechnicalSheet, { foreignKey: 'clientId' });
 TechnicalSheet.belongsTo(Client, { foreignKey: 'clientId' });
 
 // One Client can have many Appointments
@@ -44,7 +44,7 @@ Appointment.belongsTo(Service, { foreignKey: 'serviceId' });
 // --- SYNC DB & START SERVER ---
 async function startServer() {
     try {
-        await sequelize.sync({ force: false, alter: false });
+        await sequelize.sync({ force: false, alter: true });
         console.log('✅ Database connected and synchronized');
 
         app.listen(PORT, () => {
