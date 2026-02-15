@@ -1,12 +1,10 @@
 import { styles } from '../../src/styles/home-styles';
 import React, { useState, useCallback } from 'react';
-import { 
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, 
-  RefreshControl, ActivityIndicator, Image, Platform, StatusBar 
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator, Image, Platform, StatusBar } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import api from '../../src/services/api';
+import { formatPrice } from '../../src/utils/formatPrice';
 
 
 interface NextAppointment {
@@ -20,6 +18,7 @@ interface NextAppointment {
 interface DashboardData {
   nextAppointment: NextAppointment | null;
   todayCount: number;
+  todayIncome?: number;
 }
 
 export default function HomeScreen() {
@@ -27,9 +26,9 @@ export default function HomeScreen() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  
- 
-  const userName = "Maria"; 
+
+
+  const userName = "Maria";
 
   // Function to fetch dashboard data
   const fetchDashboard = async () => {
@@ -50,6 +49,14 @@ export default function HomeScreen() {
     }, [])
   );
 
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      fetchDashboard();
+    }, 5000); // every 5 seconds for faster updates
+
+    return () => clearInterval(interval);
+  }, [])
+
   // Pull to Refresh (drag to refresh)
   const onRefresh = async () => {
     setRefreshing(true);
@@ -65,8 +72,8 @@ export default function HomeScreen() {
   };
 
   const formatDate = () => {
-    return new Date().toLocaleDateString('es-ES', { 
-      weekday: 'long', day: 'numeric', month: 'long' 
+    return new Date().toLocaleDateString('es-ES', {
+      weekday: 'long', day: 'numeric', month: 'long'
     }).replace(/^\w/, c => c.toUpperCase());
   };
 
@@ -79,7 +86,7 @@ export default function HomeScreen() {
   }
 
   return (
-    <ScrollView 
+    <ScrollView
       style={styles.container}
       contentContainerStyle={{ paddingBottom: 100 }}
       refreshControl={
@@ -87,7 +94,7 @@ export default function HomeScreen() {
       }
     >
       <StatusBar barStyle="light-content" backgroundColor="#6200ee" />
-      
+
       {/* 1. HEADER (Greeting) */}
       <View style={styles.header}>
         <View>
@@ -98,27 +105,27 @@ export default function HomeScreen() {
 
       {/* 2. DASHBOARD CONTENT */}
       <View style={styles.content}>
-        
+
         {/* NEXT APPOINTMENT CARD */}
         <Text style={styles.sectionTitle}>Próximo Cliente 🚨</Text>
-        
+
         {data?.nextAppointment ? (
           <View style={styles.nextCard}>
             <View style={styles.nextCardHeader}>
               <FontAwesome5 name="clock" size={16} color="#fff" />
               <Text style={styles.nextTime}>{data.nextAppointment.time} hs</Text>
             </View>
-            
+
             <View style={styles.nextCardBody}>
               <Text style={styles.clientName}>{data.nextAppointment.clientName}</Text>
               <Text style={styles.serviceName}>{data.nextAppointment.service}</Text>
-              
+
               <View style={styles.tagContainer}>
-                 {/* Calculate if it's today or tomorrow to show a notice */}
-                 {data.nextAppointment.dateString === new Date().toISOString().split('T')[0] 
-                    ? <Text style={styles.tagToday}>HOY</Text>
-                    : <Text style={styles.tagFuture}>MAÑANA</Text>
-                 }
+                {/* Calculate if it's today or tomorrow to show a notice */}
+                {data.nextAppointment.dateString === new Date().toISOString().split('T')[0]
+                  ? <Text style={styles.tagToday}>HOY</Text>
+                  : <Text style={styles.tagFuture}>MAÑANA</Text>
+                }
               </View>
             </View>
           </View>
@@ -141,22 +148,23 @@ export default function HomeScreen() {
             <Text style={styles.statLabel}>Turnos Hoy</Text>
           </View>
 
-          {/* Here we could put "Cash" or "New Clients" in the future */}
           <View style={styles.statCard}>
-            <View style={[styles.iconCircle, { backgroundColor: '#fce4ec' }]}>
-              <FontAwesome5 name="cut" size={20} color="#e91e63" />
+            <View style={[styles.iconCircle, { backgroundColor: '#e8f5e9' }]}>
+              <FontAwesome5 name="dollar-sign" size={20} color="#43a047" />
             </View>
-            <Text style={styles.statNumber}>--</Text>
-            <Text style={styles.statLabel}>Servicios</Text>
+            <Text style={styles.statNumber}>
+              {data?.todayIncome !== undefined ? `$${formatPrice(data.todayIncome)}` : '--'}
+            </Text>
+            <Text style={styles.statLabel}>Ingresos Hoy</Text>
           </View>
         </View>
 
         {/* QUICK ACTIONS */}
         <Text style={styles.sectionTitle}>Acciones Rápidas ⚡</Text>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => router.push('/calendar')} 
+          onPress={() => router.push('/calendar')}
         >
           <View style={[styles.actionIcon, { backgroundColor: '#6200ee' }]}>
             <FontAwesome5 name="plus" size={18} color="#fff" />
@@ -168,9 +176,9 @@ export default function HomeScreen() {
           <FontAwesome5 name="chevron-right" size={14} color="#ccc" />
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => router.push('/(tabs)?autoFocus=true')} 
+          onPress={() => router.push('/(tabs)?autoFocus=true')}
         >
           <View style={[styles.actionIcon, { backgroundColor: '#009688' }]}>
             <FontAwesome5 name="search" size={18} color="#fff" />

@@ -24,7 +24,7 @@ export default function TabLayout() {
           title: 'Início',
           tabBarIcon: ({ color }) => <FontAwesome name="home" size={28} color={color} />,
         }}
-      />  
+      />
 
       <Tabs.Screen
         name="index"
@@ -38,6 +38,13 @@ export default function TabLayout() {
         options={{
           title: 'Agenda',
           tabBarIcon: ({ color }) => <FontAwesome name="calendar" size={28} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="services"
+        options={{
+          title: 'Servicios',
+          tabBarIcon: ({ color }) => <FontAwesome name="cog" size={28} color={color} />,
         }}
       />
     </Tabs>

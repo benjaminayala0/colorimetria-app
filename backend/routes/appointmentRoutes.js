@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const appointmentController = require('../controllers/appointmentController');
+const db = require('../database/db');
+
+router.get('/dashboard/summary', appointmentController.getDashboardSummary);
 
 // Create a new appointment
 router.post('/', appointmentController.createAppointment);
@@ -16,5 +19,6 @@ router.put('/:id', appointmentController.updateAppointment);
 
 // Delete an appointment
 router.delete('/:id', appointmentController.deleteAppointment);
+
 
 module.exports = router;

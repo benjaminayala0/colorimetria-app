@@ -30,6 +30,19 @@ const Appointment = sequelize.define('Appointment', {
             model: 'Clients',
             key: 'id'
         }
+    },
+    price: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+        defaultValue: 0
+    },
+    serviceId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'Services',
+            key: 'id'
+        }
     }
 });
 

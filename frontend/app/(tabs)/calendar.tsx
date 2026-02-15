@@ -2,11 +2,13 @@ import { styles } from '../../src/styles/calendar-styles';
 import { useState, useEffect, useCallback } from 'react';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { Text, View, SafeAreaView, TouchableOpacity, FlatList, Modal, TextInput, Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, Linking, LogBox } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import api from '../../src/services/api';
+import { formatPrice } from '../../src/utils/formatPrice';
 
 
 LogBox.ignoreLogs([
@@ -23,14 +25,22 @@ LocaleConfig.locales['es'] = {
 };
 LocaleConfig.defaultLocale = 'es';
 
+// Define the type of data for a Service
+interface Service {
+  id: number;
+  name: string;
+  price: number;
+}
+
 // Define the type of data for an Appointment
 interface Appointment {
   id: number;
-  dateString: string; 
-  time: string;      
+  dateString: string;
+  time: string;
   clientName: string;
   service: string;
   clientId?: number;
+  serviceId?: number;
 }
 
 
@@ -47,12 +57,28 @@ Notifications.setNotificationHandler({
 
 
 export default function AgendaScreen() {
+
+  // Services state
+  const [services, setServices] = useState<Service[]>([]);
+  const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
+  const [selectedServicePrice, setSelectedServicePrice] = useState<number>(0);
+
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showDatePicker, setShowDatePicker] = useState(false);     
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [showEditDatePicker, setShowEditDatePicker] = useState(false);
 
+  // Load services when screen is focused (to get updated prices)
+  useFocusEffect(
+    useCallback(() => {
+      api.get('/api/services').then(res => {
+        setServices(res.data);
+      });
+    }, [])
+  );
+
+  // Initialize notifications
   useEffect(() => {
     (async () => {
       try {
@@ -65,7 +91,7 @@ export default function AgendaScreen() {
         if (Platform.OS === 'android') {
           await Notifications.setNotificationChannelAsync('default', {
             name: 'default',
-            importance: Notifications.AndroidImportance.MAX, 
+            importance: Notifications.AndroidImportance.MAX,
             vibrationPattern: [0, 250, 250, 250],
             lightColor: '#FF231F7C',
           });
@@ -82,14 +108,16 @@ export default function AgendaScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
-  
-  // States for the form
+
+  // Form states
   const [formClientName, setFormClientName] = useState('');
   const [formService, setFormService] = useState('');
+  const [editSelectedServiceId, setEditSelectedServiceId] = useState<number | null>(null);
+  const [editSelectedServicePrice, setEditSelectedServicePrice] = useState<number>(0);
   const [formTime, setFormTime] = useState('');
   const [formDate, setFormDate] = useState('');
-  
-  // States for time picker
+
+  // Time picker states
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showEditTimePicker, setShowEditTimePicker] = useState(false);
   const [selectedTime, setSelectedTime] = useState(new Date());
@@ -114,7 +142,7 @@ export default function AgendaScreen() {
       fetchAppointments();
     }, [fetchAppointments])
   );
-  
+
   // Filter appointments for the selected date
   const appointmentsForDay = appointments.filter(app => app.dateString === selectedDate);
 
@@ -136,10 +164,10 @@ export default function AgendaScreen() {
     return date;
   };
 
-  //  STATUS LOGIC 
+  // Appointment status logic
   const getAppointmentStatus = (dateStr: string, timeStr: string) => {
     const now = new Date();
-    
+
     // Create the appointment date by combining day and time
     const [year, month, day] = dateStr.split('-').map(Number);
     const [hours, minutes] = timeStr.split(':').map(Number);
@@ -147,14 +175,14 @@ export default function AgendaScreen() {
 
 
     if (apptDate < now) {
-        return 'past';
+      return 'past';
     }
 
     const diffInMilliseconds = apptDate.getTime() - now.getTime();
     const diffInMinutes = diffInMilliseconds / (1000 * 60);
 
     if (diffInMinutes > 0 && diffInMinutes <= 120) {
-        return 'urgent';
+      return 'urgent';
     }
 
     return 'normal';
@@ -168,6 +196,8 @@ export default function AgendaScreen() {
     setSelectedTime(new Date());
     setFormClientName('');
     setFormService('');
+    setSelectedServiceId(null);
+    setSelectedServicePrice(0);
     setModalVisible(true);
   };
 
@@ -194,9 +224,9 @@ export default function AgendaScreen() {
   };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
-   
+
     if (Platform.OS === 'android') setShowDatePicker(false);
-    
+
     if (selectedDate) {
       const dateString = selectedDate.toISOString().split('T')[0];
       setFormDate(dateString);
@@ -205,50 +235,51 @@ export default function AgendaScreen() {
 
   const handleEditDateChange = (event: any, selectedDate?: Date) => {
     if (Platform.OS === 'android') setShowEditDatePicker(false);
-    
+
     if (selectedDate) {
       const dateString = selectedDate.toISOString().split('T')[0];
       setFormDate(dateString);
     }
   };
 
-  // Fuction for formating dates
+  // Function for formatting dates
   const formatDateToText = (dateString: string) => {
     if (!dateString) return '';
-    
+
     const [year, month, day] = dateString.split('-').map(Number);
-   
+
     const localDate = new Date(year, month - 1, day);
-    
-    return localDate.toLocaleDateString('es-ES', { 
-      weekday: 'long', 
-      day: 'numeric', 
-      month: 'long' 
+
+    return localDate.toLocaleDateString('es-ES', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long'
     }).replace(/^\w/, c => c.toUpperCase());
   };
 
-  // function to create an appointment
+  // Function to create an appointment
   const handleCreateAppointment = async () => {
-    if (!formClientName.trim() || !formService.trim() || !formTime.trim() || !formDate.trim()) {
+    if (!formClientName.trim() || !selectedServiceId || !formTime.trim() || !formDate.trim()) {
       Alert.alert('Error', 'Todos los campos son obligatorios');
       return;
     }
 
+    const selectedService = services.find(s => s.id === selectedServiceId);
     try {
       await api.post('/api/appointments', {
         dateString: formDate,
         time: formTime,
         clientName: formClientName,
-        service: formService
+        serviceId: selectedServiceId
       });
 
       try {
         const [year, month, day] = formDate.split('-').map(Number);
         const [hours, minutes] = formTime.split(':').map(Number);
 
-       // Calculate the trigger time for the notification (15 minutes before the appointment)
+        // Calculate the trigger time for the notification (15 minutes before the appointment)
         const appointmentTime = new Date(year, month - 1, day, hours, minutes);
-        const triggerTime = new Date(appointmentTime.getTime() - 15 * 60 * 1000); 
+        const triggerTime = new Date(appointmentTime.getTime() - 15 * 60 * 1000);
 
         // Diagnostic logs for notification scheduling
         const now = Date.now();
@@ -260,7 +291,7 @@ export default function AgendaScreen() {
               title: "⏰ Próximo Turno",
               body: `Tenés a ${formClientName} en 15 min (${formService})`,
               sound: true,
-              
+
               ...(Platform.OS === 'android' && {
                 channelId: 'default',
                 priority: Notifications.AndroidNotificationPriority.HIGH,
@@ -282,7 +313,7 @@ export default function AgendaScreen() {
       // Enhanced alert with appointment details
       Alert.alert(
         '✅ Turno Creado',
-        `Turno agendado para:\n\n👤 ${formClientName}\n📅 ${formDate}\n⏰ ${formTime}\n💇 ${formService}`,
+        `Turno agendado para:\n\n👤 ${formClientName}\n📅 ${formDate}\n⏰ ${formTime}\n💇 ${selectedService ? selectedService.name : ''}\n💲 $${selectedService ? formatPrice(selectedService.price) : ''}`,
         [{ text: 'OK' }]
       );
       fetchAppointments();
@@ -292,22 +323,27 @@ export default function AgendaScreen() {
     }
   };
 
-  // function to open the edit modal
+  // Function to open the edit modal
   const handleOpenEditModal = (appointment: Appointment) => {
     setEditingAppointment(appointment);
     setFormDate(appointment.dateString);
     setFormTime(appointment.time);
     setSelectedTime(parseTimeStringToDate(appointment.time));
     setFormClientName(appointment.clientName);
+
+    // Search service by name (legacy) or by id if available
+    const svc = services.find(s => s.name === appointment.service || s.id === appointment.serviceId);
+    setEditSelectedServiceId(svc ? svc.id : null);
+    setEditSelectedServicePrice(svc ? svc.price : 0);
     setFormService(appointment.service);
     setEditModalVisible(true);
   };
 
-  // function to update an appointment
+  // Function to update an appointment
   const handleUpdateAppointment = async () => {
     if (!editingAppointment) return;
 
-    if (!formClientName.trim() || !formService.trim() || !formTime.trim() || !formDate.trim()) {
+    if (!formClientName.trim() || !editSelectedServiceId || !formTime.trim() || !formDate.trim()) {
       Alert.alert('Error', 'Todos los campos son obligatorios');
       return;
     }
@@ -317,14 +353,14 @@ export default function AgendaScreen() {
         dateString: formDate,
         time: formTime,
         clientName: formClientName,
-        service: formService
+        serviceId: editSelectedServiceId
       });
 
       setEditModalVisible(false);
       // Enhanced alert with updated appointment details
       Alert.alert(
         '✅ Turno Actualizado',
-        `Turno actualizado para:\n\n👤 ${formClientName}\n📅 ${formDate}\n⏰ ${formTime}\n💇 ${formService}`,
+        `Turno actualizado para:\n\n👤 ${formClientName}\n📅 ${formDate}\n⏰ ${formTime}\n💇 ${services.find(s => s.id === editSelectedServiceId)?.name || ''}\n💲 $${formatPrice(services.find(s => s.id === editSelectedServiceId)?.price)}`,
         [{ text: 'OK' }]
       );
       fetchAppointments();
@@ -334,7 +370,7 @@ export default function AgendaScreen() {
     }
   };
 
-  // function to delete an appointment
+  // Function to delete an appointment
   const handleDeleteAppointment = (appointmentId: number, clientName: string) => {
     Alert.alert(
       'Eliminar Turno',
@@ -366,17 +402,17 @@ export default function AgendaScreen() {
 
     const url = `whatsapp://send?text=${encodeURIComponent(mensaje)}`;
 
-   
+
     Linking.openURL(url).catch((err) => {
       console.error('Error al abrir WhatsApp:', err);
       Alert.alert(
-        'Error', 
+        'Error',
         'No se pudo abrir WhatsApp. Asegurate de tenerlo instalado.'
       );
     });
   };
 
-  
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -400,7 +436,7 @@ export default function AgendaScreen() {
 
       <View style={styles.dayHeader}>
         <Text style={styles.dayTitle}>
-           {formatDateToText(selectedDate)} 
+          {formatDateToText(selectedDate)}
         </Text>
       </View>
 
@@ -416,68 +452,68 @@ export default function AgendaScreen() {
           keyExtractor={item => item.id.toString()}
           contentContainerStyle={{ padding: 15 }}
           ListEmptyComponent={
-              <Text style={styles.emptyText}>No hay turnos para este día. 💤</Text>
+            <Text style={styles.emptyText}>No hay turnos para este día. 💤</Text>
           }
           renderItem={({ item }) => {
             const status = getAppointmentStatus(item.dateString, item.time);
-            
+
             let cardStyle = styles.card;
             let timeContainerStyle = styles.timeContainer;
             let showUrgentIcon = false;
 
             if (status === 'past') {
-                cardStyle = { ...styles.card, backgroundColor: '#e0e0e0' };
-                timeContainerStyle = { ...styles.timeContainer, backgroundColor: '#e0e0e0' };
+              cardStyle = { ...styles.card, backgroundColor: '#e0e0e0' };
+              timeContainerStyle = { ...styles.timeContainer, backgroundColor: '#e0e0e0' };
             } else if (status === 'urgent') {
-                cardStyle = { ...styles.card, backgroundColor: '#ffeeba' };
-                timeContainerStyle = { ...styles.timeContainer, backgroundColor: '#ffeeba' };
-                showUrgentIcon = true;
+              cardStyle = { ...styles.card, backgroundColor: '#ffeeba' };
+              timeContainerStyle = { ...styles.timeContainer, backgroundColor: '#ffeeba' };
+              showUrgentIcon = true;
             }
 
             return (
-                <View style={cardStyle}>
-                  <View style={timeContainerStyle}>
-                      <Text style={styles.timeText}>{item.time}</Text>
-                      
-                      {showUrgentIcon && <Text style={{ fontSize: 12, marginTop: 2 }}>🔔</Text>}
-                  </View>
-                  <View style={styles.infoContainer}>
-                      <Text style={styles.clientName}>
-                        {item.clientName} {status === 'past' ? '(Finalizado)' : ''}
-                      </Text>
-                      <Text style={styles.serviceText}>{item.service}</Text>
-                  </View>
-                  <View style={styles.actionsContainer}>
+              <View style={cardStyle}>
+                <View style={timeContainerStyle}>
+                  <Text style={styles.timeText}>{item.time}</Text>
 
-                  <TouchableOpacity 
-                      style={styles.iconButton}
-                      onPress={() => {handleWhatsApp(item)}}
-                    >
-                      <FontAwesome5 name="whatsapp" size={18} color={status === 'past' ? "#ccc" : "#25D366"} />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity 
-                      style={styles.iconButton}
-                      onPress={() => handleOpenEditModal(item)}
-                    >
-                      <FontAwesome5 name="edit" size={18} color="#6200ee" />
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={styles.iconButton}
-                      onPress={() => handleDeleteAppointment(item.id, item.clientName)}
-                    >
-                      <FontAwesome5 name="trash-alt" size={18} color="#ee2626" />
-                    </TouchableOpacity>
-                  </View>
+                  {showUrgentIcon && <Text style={{ fontSize: 12, marginTop: 2 }}>🔔</Text>}
                 </View>
+                <View style={styles.infoContainer}>
+                  <Text style={styles.clientName}>
+                    {item.clientName} {status === 'past' ? '(Finalizado)' : ''}
+                  </Text>
+                  <Text style={styles.serviceText}>{item.service}</Text>
+                </View>
+                <View style={styles.actionsContainer}>
+
+                  <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={() => { handleWhatsApp(item) }}
+                  >
+                    <FontAwesome5 name="whatsapp" size={18} color={status === 'past' ? "#ccc" : "#25D366"} />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={() => handleOpenEditModal(item)}
+                  >
+                    <FontAwesome5 name="edit" size={18} color="#6200ee" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={() => handleDeleteAppointment(item.id, item.clientName)}
+                  >
+                    <FontAwesome5 name="trash-alt" size={18} color="#ee2626" />
+                  </TouchableOpacity>
+                </View>
+              </View>
             );
           }}
         />
       )}
 
       {/* 3. (+) BUTTON */}
-      <TouchableOpacity 
-        style={styles.fab} 
+      <TouchableOpacity
+        style={styles.fab}
         onPress={handleOpenCreateModal}
       >
         <Text style={styles.fabText}>+</Text>
@@ -490,7 +526,7 @@ export default function AgendaScreen() {
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.modalOverlay}
         >
@@ -499,11 +535,11 @@ export default function AgendaScreen() {
               <Text style={styles.modalTitle}>Nuevo Turno</Text>
 
               <Text style={{ textAlign: 'center', fontSize: 16, color: '#6200ee', marginBottom: 15, fontWeight: 'bold' }}>
-              📅 {formatDateToText(formDate)}
+                📅 {formatDateToText(formDate)}
               </Text>
-          
+
               <Text style={styles.inputLabel}>Hora:</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.timeButton}
                 onPress={() => setShowTimePicker(true)}
               >
@@ -511,7 +547,7 @@ export default function AgendaScreen() {
                   {formTime || 'Seleccionar hora ⏰'}
                 </Text>
               </TouchableOpacity>
-              
+
               {showTimePicker && (
                 <DateTimePicker
                   value={selectedTime}
@@ -523,7 +559,7 @@ export default function AgendaScreen() {
                 />
               )}
               {Platform.OS === 'ios' && showTimePicker && (
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.timePickerCloseButton}
                   onPress={() => setShowTimePicker(false)}
                 >
@@ -532,7 +568,7 @@ export default function AgendaScreen() {
               )}
 
               <Text style={styles.inputLabel}>Nombre del Cliente:</Text>
-              <TextInput 
+              <TextInput
                 style={styles.input}
                 placeholder="Ej: Marta Gomez"
                 value={formClientName}
@@ -540,22 +576,37 @@ export default function AgendaScreen() {
               />
 
               <Text style={styles.inputLabel}>Servicio:</Text>
-              <TextInput 
-                style={styles.input}
-                placeholder="Ej: Corte, Color, Nutrición"
-                value={formService}
-                onChangeText={setFormService}
-              />
+              <View style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginBottom: 10 }}>
+                <Picker
+                  selectedValue={selectedServiceId}
+                  onValueChange={(itemValue, itemIndex) => {
+                    setSelectedServiceId(itemValue);
+                    const svc = services.find(s => s.id === itemValue);
+                    setSelectedServicePrice(svc ? svc.price : 0);
+                  }}
+                  style={{ height: 50 }}
+                >
+                  <Picker.Item label="Seleccionar servicio..." value={null} />
+                  {services.map(s => (
+                    <Picker.Item key={s.id} label={`${s.name} ($${formatPrice(s.price)})`} value={s.id} />
+                  ))}
+                </Picker>
+              </View>
+              {selectedServiceId && (
+                <Text style={{ color: '#43a047', fontWeight: 'bold', marginBottom: 10 }}>
+                  Precio: ${formatPrice(selectedServicePrice)}
+                </Text>
+              )}
 
               <View style={styles.modalButtons}>
-                <TouchableOpacity 
-                  style={[styles.button, styles.cancelButton]} 
+                <TouchableOpacity
+                  style={[styles.button, styles.cancelButton]}
                   onPress={() => setModalVisible(false)}
                 >
                   <Text style={styles.buttonText}>Cancelar</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.button, styles.saveButton]} 
+                <TouchableOpacity
+                  style={[styles.button, styles.saveButton]}
                   onPress={handleCreateAppointment}
                 >
                   <Text style={styles.buttonText}>Guardar</Text>
@@ -573,19 +624,19 @@ export default function AgendaScreen() {
         visible={editModalVisible}
         onRequestClose={() => setEditModalVisible(false)}
       >
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.modalOverlay}
         >
           <View style={styles.modalContent}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={styles.modalTitle}>Editar Turno</Text>
-              
+
               <Text style={styles.inputLabel}>Fecha:</Text>
-              <TouchableOpacity 
-                style={styles.timeButton} 
+              <TouchableOpacity
+                style={styles.timeButton}
                 onPress={() => setShowEditDatePicker(true)}
-                >
+              >
                 <Text style={styles.timeButtonText}>
                   📅 {formDate ? formatDateToText(formDate) : 'Seleccionar fecha'}
                 </Text>
@@ -593,16 +644,16 @@ export default function AgendaScreen() {
 
               {showEditDatePicker && (
                 <DateTimePicker
-                  value={new Date(formDate ? formDate + 'T12:00:00' : Date.now())} 
+                  value={new Date(formDate ? formDate + 'T12:00:00' : Date.now())}
                   mode="date"
                   display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                   onChange={handleEditDateChange}
                   locale="es-ES"
                 />
               )}
-              
+
               <Text style={styles.inputLabel}>Hora:</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.timeButton}
                 onPress={() => setShowEditTimePicker(true)}
               >
@@ -610,7 +661,7 @@ export default function AgendaScreen() {
                   {formTime || 'Seleccionar hora ⏰'}
                 </Text>
               </TouchableOpacity>
-              
+
               {showEditTimePicker && (
                 <DateTimePicker
                   value={selectedTime}
@@ -622,7 +673,7 @@ export default function AgendaScreen() {
                 />
               )}
               {Platform.OS === 'ios' && showEditTimePicker && (
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.timePickerCloseButton}
                   onPress={() => setShowEditTimePicker(false)}
                 >
@@ -631,28 +682,44 @@ export default function AgendaScreen() {
               )}
 
               <Text style={styles.inputLabel}>Nombre del Cliente:</Text>
-              <TextInput 
+              <TextInput
                 style={styles.input}
                 value={formClientName}
                 onChangeText={setFormClientName}
               />
 
               <Text style={styles.inputLabel}>Servicio:</Text>
-              <TextInput 
-                style={styles.input}
-                value={formService}
-                onChangeText={setFormService}
-              />
+              <View style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginBottom: 10 }}>
+                <Picker
+                  selectedValue={editSelectedServiceId}
+                  onValueChange={(itemValue, itemIndex) => {
+                    setEditSelectedServiceId(itemValue);
+                    const svc = services.find(s => s.id === itemValue);
+                    setEditSelectedServicePrice(svc ? svc.price : 0);
+                  }}
+                  style={{ height: 50 }}
+                >
+                  <Picker.Item label="Seleccionar servicio..." value={null} />
+                  {services.map(s => (
+                    <Picker.Item key={s.id} label={`${s.name} ($${formatPrice(s.price)})`} value={s.id} />
+                  ))}
+                </Picker>
+              </View>
+              {editSelectedServiceId && (
+                <Text style={{ color: '#43a047', fontWeight: 'bold', marginBottom: 10 }}>
+                  Precio: ${formatPrice(editSelectedServicePrice)}
+                </Text>
+              )}
 
               <View style={styles.modalButtons}>
-                <TouchableOpacity 
-                  style={[styles.button, styles.cancelButton]} 
+                <TouchableOpacity
+                  style={[styles.button, styles.cancelButton]}
                   onPress={() => setEditModalVisible(false)}
                 >
                   <Text style={styles.buttonText}>Cancelar</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.button, styles.saveButton]} 
+                <TouchableOpacity
+                  style={[styles.button, styles.saveButton]}
                   onPress={handleUpdateAppointment}
                 >
                   <Text style={styles.buttonText}>Guardar Cambios</Text>
