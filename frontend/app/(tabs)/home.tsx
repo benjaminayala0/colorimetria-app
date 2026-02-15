@@ -26,6 +26,7 @@ export default function HomeScreen() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0); // Force re-render
 
 
   const userName = "Maria";
@@ -34,7 +35,10 @@ export default function HomeScreen() {
   const fetchDashboard = async () => {
     try {
       const response = await api.get('/api/appointments/dashboard/summary');
+      console.log('📱 Dashboard response:', JSON.stringify(response.data, null, 2));
       setData(response.data);
+      setRefreshKey(prev => prev + 1); // Force re-render
+      console.log('✅ State updated with:', response.data?.nextAppointment ? 'HAS next appointment' : 'NO next appointment');
     } catch (error) {
       console.error("Error cargando dashboard:", error);
     } finally {
@@ -45,16 +49,22 @@ export default function HomeScreen() {
   // Load every time we enter the screen
   useFocusEffect(
     useCallback(() => {
+      console.log('🏠 Home screen focused - fetching dashboard');
       fetchDashboard();
     }, [])
   );
 
   React.useEffect(() => {
+    console.log('⏰ Setting up 5-second auto-refresh');
     const interval = setInterval(() => {
+      console.log('🔄 Auto-refreshing dashboard...');
       fetchDashboard();
     }, 5000); // every 5 seconds for faster updates
 
-    return () => clearInterval(interval);
+    return () => {
+      console.log('🛑 Clearing auto-refresh interval');
+      clearInterval(interval);
+    };
   }, [])
 
   // Pull to Refresh (drag to refresh)
@@ -104,7 +114,7 @@ export default function HomeScreen() {
       </View>
 
       {/* 2. DASHBOARD CONTENT */}
-      <View style={styles.content}>
+      <View style={styles.content} key={refreshKey}>
 
         {/* NEXT APPOINTMENT CARD */}
         <Text style={styles.sectionTitle}>Próximo Cliente 🚨</Text>

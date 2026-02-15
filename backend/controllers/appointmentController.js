@@ -135,15 +135,16 @@ exports.deleteAppointment = async (req, res) => {
 exports.getDashboardSummary = async (req, res) => {
     try {
         const now = new Date();
-        const todayString = now.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
-        const timeString = now.toLocaleTimeString('en-US', {
-            timeZone: 'America/Argentina/Buenos_Aires',
-            hour12: false,
-            hour: '2-digit',
-            minute: '2-digit'
-        });
 
-        console.log(`🔎 Dashboard (Sequelize) buscando desde: ${todayString} ${timeString}`);
+        // Use local date and time (no timezone conversion needed)
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const todayString = `${year}-${month}-${day}`;
+
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const timeString = `${hours}:${minutes}`;
 
         const nextAppointment = await Appointment.findOne({
             where: {
