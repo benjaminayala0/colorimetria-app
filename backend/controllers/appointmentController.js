@@ -134,16 +134,21 @@ exports.deleteAppointment = async (req, res) => {
 // 6. Get Dashboard Summary 
 exports.getDashboardSummary = async (req, res) => {
     try {
+        // Get current time in Argentina timezone (works in any server timezone)
         const now = new Date();
+        const argentinaTime = new Date(now.toLocaleString('en-US', {
+            timeZone: 'America/Argentina/Buenos_Aires'
+        }));
 
-        // Use local date and time (no timezone conversion needed)
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
+        // Format date as YYYY-MM-DD
+        const year = argentinaTime.getFullYear();
+        const month = String(argentinaTime.getMonth() + 1).padStart(2, '0');
+        const day = String(argentinaTime.getDate()).padStart(2, '0');
         const todayString = `${year}-${month}-${day}`;
 
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
+        // Format time as HH:MM
+        const hours = String(argentinaTime.getHours()).padStart(2, '0');
+        const minutes = String(argentinaTime.getMinutes()).padStart(2, '0');
         const timeString = `${hours}:${minutes}`;
 
         const nextAppointment = await Appointment.findOne({
