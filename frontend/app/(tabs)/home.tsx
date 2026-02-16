@@ -140,6 +140,7 @@ export default function HomeScreen() {
 
         {/* QUICK SUMMARY */}
         <Text style={styles.sectionTitle}>Resumen de Hoy 📊</Text>
+        {/* STATS CARDS */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <View style={[styles.iconCircle, { backgroundColor: '#e3f2fd' }]}>
@@ -149,7 +150,11 @@ export default function HomeScreen() {
             <Text style={styles.statLabel}>Turnos Hoy</Text>
           </View>
 
-          <View style={styles.statCard}>
+          <TouchableOpacity
+            style={styles.statCard}
+            onPress={() => router.push('/revenue/stats')}
+            activeOpacity={0.7}
+          >
             <View style={[styles.iconCircle, { backgroundColor: '#e8f5e9' }]}>
               <FontAwesome5 name="dollar-sign" size={20} color="#43a047" />
             </View>
@@ -157,7 +162,7 @@ export default function HomeScreen() {
               {data?.todayIncome !== undefined ? `$${formatPrice(data.todayIncome)}` : '--'}
             </Text>
             <Text style={styles.statLabel}>Ingresos Hoy</Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* QUICK ACTIONS */}

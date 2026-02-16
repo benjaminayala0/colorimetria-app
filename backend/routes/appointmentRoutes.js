@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const appointmentController = require('../controllers/appointmentController');
+const revenueController = require('../controllers/revenueController');
 const db = require('../database/db');
 
 router.get('/dashboard/summary', appointmentController.getDashboardSummary);
+router.get('/revenue/stats', revenueController.getRevenueStats);
 
 // Create a new appointment
 router.post('/', appointmentController.createAppointment);
