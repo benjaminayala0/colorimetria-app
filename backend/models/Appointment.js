@@ -7,19 +7,19 @@ const Appointment = sequelize.define('Appointment', {
         primaryKey: true,
         autoIncrement: true
     },
-    dateString: { 
+    dateString: {
         type: DataTypes.DATEONLY,
         allowNull: false
     },
-    time: { 
+    time: {
         type: DataTypes.STRING,
         allowNull: false
     },
-    clientName: { 
+    clientName: {
         type: DataTypes.STRING,
         allowNull: false
     },
-    service: { 
+    service: {
         type: DataTypes.STRING,
         allowNull: false
     },
@@ -32,9 +32,21 @@ const Appointment = sequelize.define('Appointment', {
         }
     },
     price: {
-        type: DataTypes.FLOAT,
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true
+    },
+    status: {
+        type: DataTypes.STRING,
         allowNull: false,
-        defaultValue: 0
+        defaultValue: 'pending',
+        validate: {
+            isIn: [['pending', 'completed', 'absent', 'cancelled']]
+        }
+    },
+    completedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: 'Timestamp when the appointment was marked as completed'
     },
     serviceId: {
         type: DataTypes.INTEGER,

@@ -32,6 +32,13 @@ interface Service {
   price: number;
 }
 
+// Define the type of data for a Client
+interface Client {
+  id: number;
+  fullname: string;
+  phone: string;
+}
+
 // Define the type of data for an Appointment
 interface Appointment {
   id: number;
@@ -39,8 +46,10 @@ interface Appointment {
   time: string;
   clientName: string;
   service: string;
-  clientId?: number;
-  serviceId?: number;
+  price: number;
+  clientId: number | null;
+  serviceId: number | null;
+  status?: string;
 }
 
 
@@ -63,17 +72,24 @@ export default function AgendaScreen() {
   const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
   const [selectedServicePrice, setSelectedServicePrice] = useState<number>(0);
 
+  // Clients state
+  const [clients, setClients] = useState<Client[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showEditDatePicker, setShowEditDatePicker] = useState(false);
 
-  // Load services when screen is focused (to get updated prices)
+  // Load services and clients when screen is focused
   useFocusEffect(
     useCallback(() => {
       api.get('/api/services').then(res => {
         setServices(res.data);
+      });
+      api.get('/api/clients').then(res => {
+        setClients(res.data);
       });
     }, [])
   );
@@ -195,6 +211,7 @@ export default function AgendaScreen() {
     setFormTime('');
     setSelectedTime(new Date());
     setFormClientName('');
+    setSelectedClientId(null);
     setFormService('');
     setSelectedServiceId(null);
     setSelectedServicePrice(0);
@@ -259,17 +276,19 @@ export default function AgendaScreen() {
 
   // Function to create an appointment
   const handleCreateAppointment = async () => {
-    if (!formClientName.trim() || !selectedServiceId || !formTime.trim() || !formDate.trim()) {
+    if (!selectedClientId || !selectedServiceId || !formTime.trim() || !formDate.trim()) {
       Alert.alert('Error', 'Todos los campos son obligatorios');
       return;
     }
 
+    const selectedClient = clients.find(c => c.id === selectedClientId);
     const selectedService = services.find(s => s.id === selectedServiceId);
     try {
       await api.post('/api/appointments', {
         dateString: formDate,
         time: formTime,
-        clientName: formClientName,
+        clientName: selectedClient?.fullname || '',
+        clientId: selectedClientId,
         serviceId: selectedServiceId
       });
 
@@ -289,7 +308,7 @@ export default function AgendaScreen() {
           await Notifications.scheduleNotificationAsync({
             content: {
               title: "⏰ Próximo Turno",
-              body: `Tenés a ${formClientName} en 15 min (${formService})`,
+              body: `Tenés a ${selectedClient?.fullname || 'Cliente'} en 15 min (${selectedService?.name || formService})`,
               sound: true,
 
               ...(Platform.OS === 'android' && {
@@ -313,7 +332,7 @@ export default function AgendaScreen() {
       // Enhanced alert with appointment details
       Alert.alert(
         '✅ Turno Creado',
-        `Turno agendado para:\n\n👤 ${formClientName}\n📅 ${formDate}\n⏰ ${formTime}\n💇 ${selectedService ? selectedService.name : ''}\n💲 $${selectedService ? formatPrice(selectedService.price) : ''}`,
+        `Turno agendado para:\n\n👤 ${selectedClient?.fullname || 'Cliente'}\n📅 ${formDate}\n⏰ ${formTime}\n💇 ${selectedService ? selectedService.name : ''}\n💲 $${selectedService ? formatPrice(selectedService.price) : ''}`,
         [{ text: 'OK' }]
       );
       fetchAppointments();
@@ -330,6 +349,7 @@ export default function AgendaScreen() {
     setFormTime(appointment.time);
     setSelectedTime(parseTimeStringToDate(appointment.time));
     setFormClientName(appointment.clientName);
+    setSelectedClientId(appointment.clientId || null);
 
     // Search service by name (legacy) or by id if available
     const svc = services.find(s => s.name === appointment.service || s.id === appointment.serviceId);
@@ -343,16 +363,18 @@ export default function AgendaScreen() {
   const handleUpdateAppointment = async () => {
     if (!editingAppointment) return;
 
-    if (!formClientName.trim() || !editSelectedServiceId || !formTime.trim() || !formDate.trim()) {
+    if (!selectedClientId || !editSelectedServiceId || !formTime.trim() || !formDate.trim()) {
       Alert.alert('Error', 'Todos los campos son obligatorios');
       return;
     }
 
+    const selectedClient = clients.find(c => c.id === selectedClientId);
     try {
       await api.put(`/api/appointments/${editingAppointment.id}`, {
         dateString: formDate,
         time: formTime,
-        clientName: formClientName,
+        clientName: selectedClient?.fullname || '',
+        clientId: selectedClientId,
         serviceId: editSelectedServiceId
       });
 
@@ -360,7 +382,7 @@ export default function AgendaScreen() {
       // Enhanced alert with updated appointment details
       Alert.alert(
         '✅ Turno Actualizado',
-        `Turno actualizado para:\n\n👤 ${formClientName}\n📅 ${formDate}\n⏰ ${formTime}\n💇 ${services.find(s => s.id === editSelectedServiceId)?.name || ''}\n💲 $${formatPrice(services.find(s => s.id === editSelectedServiceId)?.price)}`,
+        `Turno actualizado para:\n\n👤 ${selectedClient?.fullname || 'Cliente'}\n📅 ${formDate}\n⏰ ${formTime}\n💇 ${services.find(s => s.id === editSelectedServiceId)?.name || ''}\n💲 $${formatPrice(services.find(s => s.id === editSelectedServiceId)?.price)}`,
         [{ text: 'OK' }]
       );
       fetchAppointments();
@@ -457,11 +479,26 @@ export default function AgendaScreen() {
           renderItem={({ item }) => {
             const status = getAppointmentStatus(item.dateString, item.time);
 
+            // Determine card colors based on appointment status
             let cardStyle = styles.card;
             let timeContainerStyle = styles.timeContainer;
             let showUrgentIcon = false;
+            let statusBadge = null;
 
-            if (status === 'past') {
+            // Status-based styling
+            if (item.status === 'completed') {
+              cardStyle = { ...styles.card, backgroundColor: '#e8f5e9', borderLeftWidth: 3, borderLeftColor: '#4caf50' } as any;
+              timeContainerStyle = { ...styles.timeContainer, backgroundColor: '#e8f5e9' };
+              statusBadge = <Text style={{ fontSize: 11, color: '#4caf50', marginLeft: 5 }}>✅</Text>;
+            } else if (item.status === 'absent') {
+              cardStyle = { ...styles.card, backgroundColor: '#ffebee', borderLeftWidth: 3, borderLeftColor: '#f44336' } as any;
+              timeContainerStyle = { ...styles.timeContainer, backgroundColor: '#ffebee' };
+              statusBadge = <Text style={{ fontSize: 11, color: '#f44336', marginLeft: 5 }}>❌ Ausente</Text>;
+            } else if (item.status === 'cancelled') {
+              cardStyle = { ...styles.card, backgroundColor: '#f5f5f5', borderLeftWidth: 3, borderLeftColor: '#9e9e9e' } as any;
+              timeContainerStyle = { ...styles.timeContainer, backgroundColor: '#f5f5f5' };
+              statusBadge = <Text style={{ fontSize: 11, color: '#9e9e9e', marginLeft: 5 }}>🚫 Cancelado</Text>;
+            } else if (status === 'past') {
               cardStyle = { ...styles.card, backgroundColor: '#e0e0e0' };
               timeContainerStyle = { ...styles.timeContainer, backgroundColor: '#e0e0e0' };
             } else if (status === 'urgent') {
@@ -478,9 +515,12 @@ export default function AgendaScreen() {
                   {showUrgentIcon && <Text style={{ fontSize: 12, marginTop: 2 }}>🔔</Text>}
                 </View>
                 <View style={styles.infoContainer}>
-                  <Text style={styles.clientName}>
-                    {item.clientName} {status === 'past' ? '(Finalizado)' : ''}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={styles.clientName}>
+                      {item.clientName} {status === 'past' && !item.status ? '(Finalizado)' : ''}
+                    </Text>
+                    {statusBadge}
+                  </View>
                   <Text style={styles.serviceText}>{item.service}</Text>
                 </View>
                 <View style={styles.actionsContainer}>
@@ -567,13 +607,21 @@ export default function AgendaScreen() {
                 </TouchableOpacity>
               )}
 
-              <Text style={styles.inputLabel}>Nombre del Cliente:</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ej: Marta Gomez"
-                value={formClientName}
-                onChangeText={setFormClientName}
-              />
+              <Text style={styles.inputLabel}>Cliente:</Text>
+              <View style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginBottom: 10 }}>
+                <Picker
+                  selectedValue={selectedClientId}
+                  onValueChange={(itemValue) => {
+                    setSelectedClientId(itemValue);
+                  }}
+                  style={{ height: 50 }}
+                >
+                  <Picker.Item label="Seleccionar cliente..." value={null} />
+                  {clients.map(c => (
+                    <Picker.Item key={c.id} label={c.fullname} value={c.id} />
+                  ))}
+                </Picker>
+              </View>
 
               <Text style={styles.inputLabel}>Servicio:</Text>
               <View style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginBottom: 10 }}>
@@ -681,12 +729,21 @@ export default function AgendaScreen() {
                 </TouchableOpacity>
               )}
 
-              <Text style={styles.inputLabel}>Nombre del Cliente:</Text>
-              <TextInput
-                style={styles.input}
-                value={formClientName}
-                onChangeText={setFormClientName}
-              />
+              <Text style={styles.inputLabel}>Cliente:</Text>
+              <View style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginBottom: 10 }}>
+                <Picker
+                  selectedValue={selectedClientId}
+                  onValueChange={(itemValue) => {
+                    setSelectedClientId(itemValue);
+                  }}
+                  style={{ height: 50 }}
+                >
+                  <Picker.Item label="Seleccionar cliente..." value={null} />
+                  {clients.map(c => (
+                    <Picker.Item key={c.id} label={c.fullname} value={c.id} />
+                  ))}
+                </Picker>
+              </View>
 
               <Text style={styles.inputLabel}>Servicio:</Text>
               <View style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginBottom: 10 }}>

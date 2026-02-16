@@ -72,7 +72,10 @@ function calculateInsights(appointments) {
     }
 
     // Calculate average
-    const totalIncome = appointments.reduce((sum, apt) => sum + (apt.price || 0), 0);
+    const totalIncome = appointments.reduce((sum, apt) => {
+        const price = parseFloat(apt.price) || 0;
+        return sum + price;
+    }, 0);
     const averagePerAppointment = Math.round(totalIncome / appointments.length);
 
     // Find most popular service
@@ -114,18 +117,22 @@ exports.getRevenueStats = async (req, res) => {
         // Calculate date range
         const { startDate, endDate } = calculateDateRange(period, date);
 
-        // Fetch appointments in range
+        // Fetch appointments in range 
         const appointments = await Appointment.findAll({
             where: {
                 dateString: {
                     [Op.between]: [startDate, endDate]
-                }
+                },
+                status: 'completed'
             },
             order: [['dateString', 'DESC'], ['time', 'DESC']]
         });
 
         // Calculate statistics
-        const totalIncome = appointments.reduce((sum, apt) => sum + (apt.price || 0), 0);
+        const totalIncome = appointments.reduce((sum, apt) => {
+            const price = parseFloat(apt.price) || 0;
+            return sum + price;
+        }, 0);
         const appointmentCount = appointments.length;
 
         // Calculate insights

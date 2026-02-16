@@ -153,6 +153,7 @@ exports.getDashboardSummary = async (req, res) => {
 
         const nextAppointment = await Appointment.findOne({
             where: {
+                status: 'pending',
                 [Op.or]: [
 
                     {
@@ -172,11 +173,15 @@ exports.getDashboardSummary = async (req, res) => {
 
         const todayAppointments = await Appointment.findAll({
             where: {
-                dateString: todayString
+                dateString: todayString,
+                status: 'completed'
             }
         });
         const todayCount = todayAppointments.length;
-        const todayIncome = todayAppointments.reduce((sum, appt) => sum + (appt.price || 0), 0);
+        const todayIncome = todayAppointments.reduce((sum, appt) => {
+            const price = parseFloat(appt.price) || 0;
+            return sum + price;
+        }, 0);
 
         res.status(200).json({
             nextAppointment: nextAppointment || null,
@@ -187,5 +192,46 @@ exports.getDashboardSummary = async (req, res) => {
     } catch (error) {
         console.error("Error en dashboard summary:", error);
         res.status(500).json({ error: 'Error del servidor al obtener resumen' });
+    }
+};
+
+// Update appointment status
+exports.updateAppointmentStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        // Validate status
+        const validStatuses = ['pending', 'completed', 'absent', 'cancelled'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ error: 'Invalid status value' });
+        }
+
+        const appointment = await Appointment.findByPk(id);
+        if (!appointment) {
+            return res.status(404).json({ error: 'Appointment not found' });
+        }
+
+        appointment.status = status;
+
+        // Set completedAt timestamp when marking as completed
+        if (status === 'completed') {
+            appointment.completedAt = new Date();
+        } else if (status === 'pending') {
+            // Clear completedAt if reverting to pending
+            appointment.completedAt = null;
+        }
+
+        await appointment.save();
+
+        res.json({
+            id: appointment.id,
+            status: appointment.status,
+            completedAt: appointment.completedAt,
+            message: 'Status updated successfully'
+        });
+    } catch (error) {
+        console.error('Error updating appointment status:', error);
+        res.status(500).json({ error: 'Error updating status' });
     }
 };

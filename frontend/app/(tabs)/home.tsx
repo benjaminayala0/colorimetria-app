@@ -46,14 +46,16 @@ export default function HomeScreen() {
   // Load every time we enter the screen
   useFocusEffect(
     useCallback(() => {
+      setLoading(true);
       fetchDashboard();
     }, [])
   );
 
+  // Auto-refresh every 10 seconds when on screen
   React.useEffect(() => {
     const interval = setInterval(() => {
       fetchDashboard();
-    }, 5000); // every 5 seconds for faster updates
+    }, 10000);
 
     return () => clearInterval(interval);
   }, [])
@@ -142,13 +144,17 @@ export default function HomeScreen() {
         <Text style={styles.sectionTitle}>Resumen de Hoy 📊</Text>
         {/* STATS CARDS */}
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
+          <TouchableOpacity
+            style={styles.statCard}
+            onPress={() => router.push('/agenda/today')}
+            activeOpacity={0.7}
+          >
             <View style={[styles.iconCircle, { backgroundColor: '#e3f2fd' }]}>
               <FontAwesome5 name="calendar-check" size={20} color="#2196f3" />
             </View>
             <Text style={styles.statNumber}>{data?.todayCount || 0}</Text>
             <Text style={styles.statLabel}>Turnos Hoy</Text>
-          </View>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.statCard}
