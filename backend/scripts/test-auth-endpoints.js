@@ -1,114 +1,184 @@
 // Native fetch is available in Node 18+
 
-// If running in an environment without native fetch, this might fail, but user is on Node 20.
-// We will try-catch the entire process.
-
 const BASE_URL = 'http://localhost:3000/api/auth';
-const TEST_USER = {
-    name: 'Test Setup User',
-    email: `test_${Date.now()}@example.com`, // Unique email each time
+
+// Helper to generate random users
+const generateUser = (role = 'employee') => ({
+    name: `${role} User`,
+    email: `${role}_${Date.now()}@example.com`,
     password: 'password123',
-    role: 'employee'
-};
+    role
+});
 
 async function runTests() {
-    console.log('🧪 Starting Auth API Tests...\n');
+    console.log('🧪 Starting COMPREHENSIVE Auth API Tests...\n');
 
-    let token = '';
+    const adminUser = generateUser('admin');
+    const employeeUser = generateUser('employee');
+    let adminToken = '';
+    let employeeToken = '';
 
-    // 1. Test Register
-    console.log('1️⃣  Testing Registration...');
+    // 1. REGISTRATION TESTS
+    console.log('📝 1. Testing Registration');
+
+    // 1.1 Register Admin
     try {
-        const regRes = await fetch(`${BASE_URL}/register`, {
+        console.log('   ➡ Registering Admin...');
+        const res = await fetch(`${BASE_URL}/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(TEST_USER)
+            body: JSON.stringify(adminUser)
         });
-        const regData = await regRes.json();
+        const data = await res.json();
 
-        if (regRes.status === 201) {
-            console.log('✅ Registration Successful');
-            console.log(`   User ID: ${regData.user.id}`);
+        if (res.status === 201) {
+            console.log('   ✅ Admin Registration Successful');
+            adminToken = data.token;
         } else {
-            console.error('❌ Registration Failed');
-            console.error(regData);
+            console.error('   ❌ Admin Registration Failed:', data);
         }
-    } catch (error) {
-        console.error('❌ Registration Network Error:', error.message);
-    }
+    } catch (error) { console.error('   ❌ Network Error:', error.message); }
 
-    // 2. Test Login
-    console.log('\n2️⃣  Testing Login...');
+    // 1.2 Register Employee
     try {
-        const loginRes = await fetch(`${BASE_URL}/login`, {
+        console.log('   ➡ Registering Employee...');
+        const res = await fetch(`${BASE_URL}/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: TEST_USER.email, password: TEST_USER.password })
+            body: JSON.stringify(employeeUser)
         });
-        const loginData = await loginRes.json();
+        const data = await res.json();
 
-        if (loginRes.status === 200) {
-            console.log('✅ Login Successful');
-            token = loginData.token;
-            console.log('   Token received');
+        if (res.status === 201) {
+            console.log('   ✅ Employee Registration Successful');
+            employeeToken = data.token;
         } else {
-            console.error('❌ Login Failed');
-            console.error(loginData);
+            console.error('   ❌ Employee Registration Failed:', data);
         }
-    } catch (error) {
-        console.error('❌ Login Network Error:', error.message);
-    }
+    } catch (error) { console.error('   ❌ Network Error:', error.message); }
 
-    // 3. Test Protected Route (Get Me)
-    console.log('\n3️⃣  Testing Protected Route (/me)...');
-    if (token) {
-        try {
-            const meRes = await fetch(`${BASE_URL}/me`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            const meData = await meRes.json();
-
-            if (meRes.status === 200) {
-                console.log('✅ Protected Route Access Successful');
-                console.log(`   Authenticated as: ${meData.user.email}`);
-            } else {
-                console.error('❌ Protected Route Access Failed');
-                console.error(meData);
-            }
-        } catch (error) {
-            console.error('❌ Protected Route Network Error:', error.message);
-        }
-    } else {
-        console.log('⚠️  Skipping Protected Route test (No token available)');
-    }
-
-    // 4. Test Invalid Login
-    console.log('\n4️⃣  Testing Invalid Login (Expected Failure)...');
+    // 1.3 Duplicate Email Test
     try {
-        const failRes = await fetch(`${BASE_URL}/login`, {
+        console.log('   ➡ Testing Duplicate Email...');
+        const res = await fetch(`${BASE_URL}/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: TEST_USER.email, password: 'wrongpassword' })
+            body: JSON.stringify(adminUser) // Try to register admin again
         });
 
-        if (failRes.status === 401) {
-            console.log('✅ Invalid Login Rejected correctly (401)');
+        if (res.status === 400) {
+            console.log('   ✅ Duplicate Email Rejected correctly (400)');
         } else {
-            console.error(`❌ Unexpected status for invalid login: ${failRes.status}`);
+            console.error(`   ❌ Unexpected status for duplicate: ${res.status}`);
         }
-    } catch (error) {
-        console.error('❌ Invalid Login Network Error:', error.message);
-    }
-}
+    } catch (error) { console.error('   ❌ Network Error:', error.message); }
 
-// Check if fetch is available (Node 18+)
-if (typeof fetch === 'undefined') {
-    console.log('⚠️  Native fetch not found. Installing node-fetch isn\'t necessary if you use Node 18+. Running fallback...');
-    // In a real scenario we'd polyfill, but assuming Node 20 here.
+    // 1.4 Invalid Data Test
+    try {
+        console.log('   ➡ Testing Short Password...');
+        const res = await fetch(`${BASE_URL}/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...employeeUser, email: `bad_${Date.now()}@test.com`, password: '123' })
+        });
+
+        if (res.status === 400) {
+            console.log('   ✅ Short Password Rejected correctly (400)');
+        } else {
+            console.error(`   ❌ Unexpected status for short password: ${res.status}`);
+        }
+    } catch (error) { console.error('   ❌ Network Error:', error.message); }
+
+
+    // 2. LOGIN TESTS
+
+    console.log('\n🔑 2. Testing Login');
+
+    // 2.1 Valid Login
+    try {
+        console.log('   ➡ Valid Login...');
+        const res = await fetch(`${BASE_URL}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: adminUser.email, password: adminUser.password })
+        });
+        const data = await res.json();
+
+        if (res.status === 200 && data.token) {
+            console.log('   ✅ Login Successful');
+            // Update token just in case
+            adminToken = data.token;
+        } else {
+            console.error('   ❌ Login Failed:', data);
+        }
+    } catch (error) { console.error('   ❌ Network Error:', error.message); }
+
+    // 2.2 Invalid Password
+    try {
+        console.log('   ➡ Invalid Password...');
+        const res = await fetch(`${BASE_URL}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: adminUser.email, password: 'wrongpassword' })
+        });
+
+        if (res.status === 401) {
+            console.log('   ✅ Invalid Password Rejected correctly (401)');
+        } else {
+            console.error(`   ❌ Unexpected status: ${res.status}`);
+        }
+    } catch (error) { console.error('   ❌ Network Error:', error.message); }
+
+
+    // 3. PROTECTED ROUTES & ROLES
+
+    console.log('\n🛡️ 3. Testing Protected Routes & Roles');
+
+    // 3.1 Get Me (Employee)
+    try {
+        console.log('   ➡ Get Me (Employee)...');
+        const res = await fetch(`${BASE_URL}/me`, {
+            headers: { 'Authorization': `Bearer ${employeeToken}` }
+        });
+        const data = await res.json();
+
+        if (res.status === 200 && data.user.email === employeeUser.email) {
+            console.log('   ✅ /me Access Successful');
+        } else {
+            console.error('   ❌ /me Access Failed:', data);
+        }
+    } catch (error) { console.error('   ❌ Network Error:', error.message); }
+
+    // 3.2 Get Users (Admin Only) - AS ADMIN
+    try {
+        console.log('   ➡ Get All Users (As Admin)...');
+        const res = await fetch(`${BASE_URL}/users`, {
+            headers: { 'Authorization': `Bearer ${adminToken}` }
+        });
+
+        if (res.status === 200) {
+            const data = await res.json();
+            console.log(`   ✅ Admin accessed /users successfully (Count: ${data.count})`);
+        } else {
+            console.error(`   ❌ Admin failed to access /users. Status: ${res.status}`);
+        }
+    } catch (error) { console.error('   ❌ Network Error:', error.message); }
+
+    // 3.3 Get Users (Admin Only) - AS EMPLOYEE (SHOULD FAIL)
+    try {
+        console.log('   ➡ Get All Users (As Employee) - EXPECTING 403...');
+        const res = await fetch(`${BASE_URL}/users`, {
+            headers: { 'Authorization': `Bearer ${employeeToken}` }
+        });
+
+        if (res.status === 403) {
+            console.log('   ✅ Employee correctly blocked from /users (403)');
+        } else {
+            console.error(`   ❌ FAIL: Employee allowed or wrong error. Status: ${res.status}`);
+        }
+    } catch (error) { console.error('   ❌ Network Error:', error.message); }
+
+    console.log('\n🏁 Tests Completed.');
 }
 
 runTests();

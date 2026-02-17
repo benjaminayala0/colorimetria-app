@@ -119,3 +119,23 @@ exports.getMe = async (req, res, next) => {
         next(err);
     }
 };
+
+// @desc    Get all users (Admin only)
+// @route   GET /api/auth/users
+// @access  Private/Admin
+exports.getAllUsers = async (req, res, next) => {
+    try {
+        const users = await User.findAll({
+            attributes: { exclude: ['password'] }
+        });
+
+        res.status(200).json({
+            success: true,
+            count: users.length,
+            users
+        });
+    } catch (err) {
+        Logger.error(`Error in getAllUsers: ${err.message}`);
+        next(err);
+    }
+};
