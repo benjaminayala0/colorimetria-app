@@ -173,7 +173,7 @@ export default function TodayAgendaScreen() {
         const diffMs = completedDate.getTime() - scheduledDate.getTime();
         const diffMins = Math.round(diffMs / 60000);
 
-        if (diffMins < 0) return null; // Completed before scheduled time (shouldn't happen)
+        if (diffMins < 0) return null;
 
         if (diffMins < 60) {
             return `${diffMins} min`;

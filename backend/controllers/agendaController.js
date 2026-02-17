@@ -63,7 +63,7 @@ exports.getTodayAgenda = async (req, res) => {
         const absentCount = enrichedAppointments.filter(a => a.status === 'absent').length;
         const cancelledCount = enrichedAppointments.filter(a => a.status === 'cancelled').length;
 
-        // Calculate total revenue (only completed)
+        // Calculate total revenue 
         const totalRevenue = enrichedAppointments
             .filter(a => a.status === 'completed')
             .reduce((sum, a) => sum + (parseFloat(a.price) || 0), 0);
