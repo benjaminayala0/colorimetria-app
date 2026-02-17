@@ -1,8 +1,10 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const sequelize = require('./database/db');
 const errorHandler = require('./middleware/errorHandler');
+const { authenticate } = require('./middleware/auth'); // Import auth middleware
 
 // Import Models
 const Client = require('./models/Client');
@@ -22,17 +24,26 @@ const serviceRoutes = require('./routes/serviceRoutes');
 const app = express();
 const PORT = 3000;
 
+// Rate Liimiter
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again after 15 minutes'
+});
+
 // Middlewares
 app.use(helmet()); // Set security headers
+app.use(limiter); // Apply rate limiting to all requests
 app.use(cors());
 app.use(express.json());
 
 // Use Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/clients', clientRoutes);
-app.use('/api/sheets', technicalSheetRoutes);
-app.use('/api/appointments', appointmentRoutes);
-app.use('/api/services', serviceRoutes);
+app.use('/api/auth', authRoutes); // Public routes (login/register) inside
+// Protected Routes
+app.use('/api/clients', authenticate, clientRoutes);
+app.use('/api/sheets', authenticate, technicalSheetRoutes);
+app.use('/api/appointments', authenticate, appointmentRoutes);
+app.use('/api/services', authenticate, serviceRoutes);
 
 // Error Handler Middleware
 app.use(errorHandler);
