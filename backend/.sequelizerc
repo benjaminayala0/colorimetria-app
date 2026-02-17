@@ -1,21 +1,8 @@
-elrequire('dotenv').config();
+const path = require('path');
 
 module.exports = {
-    development: {
-        url: process.env.DATABASE_URL,
-        dialect: 'postgres',
-        dialectOptions: {
-            ssl: false
-        }
-    },
-    production: {
-        url: process.env.DATABASE_URL,
-        dialect: 'postgres',
-        dialectOptions: {
-            ssl: {
-                require: true,
-                rejectUnauthorized: false
-            }
-        }
-    }
+    'config': path.resolve('config', 'database.js'),
+    'models-path': path.resolve('models'),
+    'seeders-path': path.resolve('seeders'),
+    'migrations-path': path.resolve('migrations')
 };

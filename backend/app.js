@@ -44,8 +44,9 @@ Appointment.belongsTo(Service, { foreignKey: 'serviceId' });
 // --- SYNC DB & START SERVER ---
 async function startServer() {
     try {
-        await sequelize.sync({ force: false, alter: true });
-        console.log('✅ Database connected and synchronized');
+        // await sequelize.sync({ force: false, alter: true }); // Disabled in favor of migrations
+        await sequelize.authenticate();
+        console.log('✅ Database connected');
 
         app.listen(PORT, () => {
             console.log(`🚀 Server running on http://localhost:${PORT}`);
