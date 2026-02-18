@@ -53,7 +53,7 @@ export const styles = StyleSheet.create({
     borderRadius: 15,
     fontSize: 12,
     fontWeight: 'bold',
-    marginRight: 10, 
+    marginRight: 10,
   },
   iconButton: {
     padding: 5,
@@ -128,7 +128,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     right: 20,
-    bottom: 20,
+    bottom: 75,
     backgroundColor: '#6200ee',
     borderRadius: 30,
     elevation: 8,
@@ -140,7 +140,7 @@ export const styles = StyleSheet.create({
     fontSize: 30,
     color: '#fff',
     fontWeight: 'bold',
-    marginTop: -2, 
+    marginTop: -2,
   },
   // -- Modal Styles --
   modalOverlay: {
@@ -151,7 +151,7 @@ export const styles = StyleSheet.create({
   },
   modalContent: {
     width: '90%',
-    maxHeight: '90%', 
+    maxHeight: '90%',
     backgroundColor: '#fff',
     borderRadius: 20,
     padding: 20,
@@ -205,7 +205,6 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     fontWeight: '500',
-    textAlign: 'center',
   },
   timePickerCloseButton: {
     alignSelf: 'flex-end',
@@ -242,12 +241,12 @@ export const styles = StyleSheet.create({
     textAlign: 'right',
     fontSize: 11,
     color: '#999',
-    marginTop: -10, 
+    marginTop: -10,
     marginBottom: 10,
     marginRight: 5,
   },
   charCounterWarning: {
-    color: '#e53935', 
+    color: '#e53935',
     fontWeight: 'bold',
   },
 });

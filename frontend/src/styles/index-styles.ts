@@ -24,6 +24,17 @@ export const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f1f3f4',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    height: 45,
+    marginTop: 15,
+  },
+  searchIcon: { marginRight: 10 },
+  searchInput: { flex: 1, fontSize: 16, color: '#333' },
   emptyText: {
     textAlign: 'center',
     marginTop: 20,

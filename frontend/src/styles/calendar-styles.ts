@@ -18,7 +18,7 @@ export const styles = StyleSheet.create({
   },
   dayHeader: {
     padding: 15,
-    backgroundColor: '#eaddff', 
+    backgroundColor: '#eaddff',
   },
   dayTitle: {
     fontSize: 16,
@@ -80,7 +80,7 @@ export const styles = StyleSheet.create({
     fontSize: 30,
     color: '#fff',
     fontWeight: 'bold',
-    marginTop: -2, 
+    marginTop: -2,
   },
   center: {
     flex: 1,
