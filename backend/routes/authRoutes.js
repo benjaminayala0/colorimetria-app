@@ -1,7 +1,7 @@
 const express = require('express');
 const { check } = require('express-validator');
 const router = express.Router();
-const { register, login, getMe, getAllUsers } = require('../controllers/authController');
+const { register, login, getMe, getAllUsers, refreshToken } = require('../controllers/authController');
 const { protect, authenticate, authorize } = require('../middleware/auth'); // protect is alias for authenticate if needed, but we used authenticate
 const { validate } = require('../middleware/validate');
 
@@ -27,6 +27,9 @@ router.post(
     ],
     login
 );
+
+// Refresh Token
+router.post('/refresh', refreshToken);
 
 // Get Current User
 router.get('/me', authenticate, getMe);

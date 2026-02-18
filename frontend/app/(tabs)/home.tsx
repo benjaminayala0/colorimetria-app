@@ -1,9 +1,10 @@
 import { styles } from '../../src/styles/home-styles';
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator, Image, Platform, StatusBar } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import api from '../../src/services/api';
+import { AuthContext } from '../../context/AuthContext';
 import { formatPrice } from '../../src/utils/formatPrice';
 
 
@@ -23,6 +24,7 @@ interface DashboardData {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { logout } = useContext(AuthContext);
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -99,11 +101,14 @@ export default function HomeScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#6200ee" />
 
       {/* 1. HEADER (Greeting) */}
-      <View style={styles.header}>
+      <View style={[styles.header, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
         <View>
           <Text style={styles.greetingSub}>{formatDate()}</Text>
           <Text style={styles.greetingTitle}>{getGreeting()}, {userName}! 👋</Text>
         </View>
+        <TouchableOpacity onPress={logout} style={{ padding: 10, backgroundColor: 'white', borderRadius: 20 }}>
+          <FontAwesome5 name="sign-out-alt" size={20} color="#6200ee" />
+        </TouchableOpacity>
       </View>
 
       {/* 2. DASHBOARD CONTENT */}

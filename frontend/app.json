@@ -4,13 +4,11 @@
     "slug": "chroma-app",
     "version": "1.0.0",
     "orientation": "portrait",
-
     "splash": {
-      "image": "./assets/images/v3.png", 
+      "image": "./assets/images/v3.png",
       "resizeMode": "cover",
       "backgroundColor": "#ffffff"
     },
-
     "icon": "./assets/images/iconv1.png",
     "scheme": "chroma",
     "userInterfaceStyle": "automatic",
@@ -84,7 +82,8 @@
           }
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

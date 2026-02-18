@@ -3,10 +3,17 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const Logger = require('../utils/logger');
 
-// Generate JWT Token
-const generateToken = (id) => {
+// Generate Access Token (Short Lived - 15m)
+const generateAccessToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
-        expiresIn: process.env.JWT_EXPIRE || '30d',
+        expiresIn: process.env.JWT_ACCESS_EXPIRE || '15m',
+    });
+};
+
+// Generate Refresh Token (Long Lived - 7d)
+const generateRefreshToken = (id) => {
+    return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET, {
+        expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d',
     });
 };
 
@@ -33,12 +40,14 @@ exports.register = async (req, res, next) => {
 
         Logger.info(`New user registered: ${user.email}`);
 
-        // Create token
-        const token = generateToken(user.id);
+        // Create tokens
+        const accessToken = generateAccessToken(user.id);
+        const refreshToken = generateRefreshToken(user.id);
 
         res.status(201).json({
             success: true,
-            token,
+            accessToken,
+            refreshToken,
             user: {
                 id: user.id,
                 name: user.name,
@@ -82,12 +91,14 @@ exports.login = async (req, res, next) => {
 
         Logger.info(`User logged in: ${user.email}`);
 
-        // Create token
-        const token = generateToken(user.id);
+        // Create tokens
+        const accessToken = generateAccessToken(user.id);
+        const refreshToken = generateRefreshToken(user.id);
 
         res.status(200).json({
             success: true,
-            token,
+            accessToken,
+            refreshToken,
             user: {
                 id: user.id,
                 name: user.name,
@@ -98,6 +109,47 @@ exports.login = async (req, res, next) => {
     } catch (err) {
         Logger.error(`Error in login: ${err.message}`);
         next(err);
+    }
+};
+
+// @desc    Refresh Access Token
+// @route   POST /api/auth/refresh
+// @access  Public (matches Refresh Token)
+exports.refreshToken = async (req, res, next) => {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+        return res.status(401).json({ success: false, error: 'No refresh token provided' });
+    }
+
+    try {
+        // Verify Refresh Token
+        // Note: In production, usage of specific JWT_REFRESH_SECRET is recommended
+        const secret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET;
+
+        const decoded = jwt.verify(refreshToken, secret);
+
+        // Find user
+        const user = await User.findByPk(decoded.id);
+
+        if (!user) {
+            return res.status(401).json({ success: false, error: 'User not found' });
+        }
+
+        // Generate NEW Access Token
+        const accessToken = generateAccessToken(user.id);
+
+        // Optionally prevent reuse of refresh tokens here (Rotation)
+        // For now, we return just the new access token
+
+        res.status(200).json({
+            success: true,
+            accessToken
+        });
+
+    } catch (err) {
+        Logger.error(`Error in refreshToken: ${err.message}`);
+        return res.status(403).json({ success: false, error: 'Invalid refresh token' });
     }
 };
 
