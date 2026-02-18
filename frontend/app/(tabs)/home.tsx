@@ -36,7 +36,7 @@ export default function HomeScreen() {
   // Function to fetch dashboard data
   const fetchDashboard = async () => {
     try {
-      const response = await api.get('/api/appointments/dashboard/summary');
+      const response = await api.get('/appointments/dashboard/summary');
       setData(response.data);
     } catch (error) {
       console.error("Error cargando dashboard:", error);
@@ -48,19 +48,9 @@ export default function HomeScreen() {
   // Load every time we enter the screen
   useFocusEffect(
     useCallback(() => {
-      setLoading(true);
       fetchDashboard();
     }, [])
   );
-
-  // Auto-refresh every 10 seconds when on screen
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      fetchDashboard();
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [])
 
   // Pull to Refresh (drag to refresh)
   const onRefresh = async () => {

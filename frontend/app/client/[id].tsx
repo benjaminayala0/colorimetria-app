@@ -69,7 +69,7 @@ export default function ClientDetailScreen() {
     try {
       setLoading(true);
       // Fetch sheets from backend
-      const response = await api.get(`/api/sheets/client/${id}`);
+      const response = await api.get(`/sheets/client/${id}`);
       setSheets(response.data);
     } catch (error) {
       console.error("Error trayendo fichas:", error);
@@ -99,7 +99,7 @@ export default function ClientDetailScreen() {
   // Load services when screen is focused
   useFocusEffect(
     useCallback(() => {
-      api.get('/api/services').then(res => {
+      api.get('/services').then(res => {
         setServices(res.data);
       });
     }, [])
@@ -240,7 +240,7 @@ export default function ClientDetailScreen() {
             setSheets(prev => prev.filter(s => s.id !== sheetId));
 
             try {
-              await api.delete(`/api/sheets/${sheetId}`);
+              await api.delete(`/sheets/${sheetId}`);
               Alert.alert("Eliminado", "La ficha se borró correctamente.");
             } catch (error) {
               console.error(error);
@@ -332,7 +332,7 @@ export default function ClientDetailScreen() {
         } as any);
       }
 
-      await api.put(`/api/sheets/${editingSheet.id}`, formData, {
+      await api.put(`/sheets/${editingSheet.id}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -439,7 +439,7 @@ export default function ClientDetailScreen() {
       }
 
 
-      await api.post('/api/sheets', formData, {
+      await api.post('/sheets', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

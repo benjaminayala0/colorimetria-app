@@ -85,10 +85,10 @@ export default function AgendaScreen() {
   // Load services and clients when screen is focused
   useFocusEffect(
     useCallback(() => {
-      api.get('/api/services').then(res => {
+      api.get('/services').then(res => {
         setServices(res.data);
       });
-      api.get('/api/clients').then(res => {
+      api.get('/clients').then(res => {
         setClients(res.data);
       });
     }, [])
@@ -142,7 +142,7 @@ export default function AgendaScreen() {
   const fetchAppointments = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/appointments');
+      const response = await api.get('/appointments');
       setAppointments(response.data);
     } catch (error) {
       console.error('Error cargando turnos:', error);
@@ -284,7 +284,7 @@ export default function AgendaScreen() {
     const selectedClient = clients.find(c => c.id === selectedClientId);
     const selectedService = services.find(s => s.id === selectedServiceId);
     try {
-      await api.post('/api/appointments', {
+      await api.post('/appointments', {
         dateString: formDate,
         time: formTime,
         clientName: selectedClient?.fullname || '',
@@ -370,7 +370,7 @@ export default function AgendaScreen() {
 
     const selectedClient = clients.find(c => c.id === selectedClientId);
     try {
-      await api.put(`/api/appointments/${editingAppointment.id}`, {
+      await api.put(`/appointments/${editingAppointment.id}`, {
         dateString: formDate,
         time: formTime,
         clientName: selectedClient?.fullname || '',
@@ -404,7 +404,7 @@ export default function AgendaScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await api.delete(`/api/appointments/${appointmentId}`);
+              await api.delete(`/appointments/${appointmentId}`);
               Alert.alert('Eliminado', 'Turno eliminado correctamente');
               fetchAppointments();
             } catch (error) {

@@ -27,7 +27,7 @@ export default function ServicesScreen() {
     const fetchServices = useCallback(async () => {
         try {
             setLoading(true);
-            const response = await api.get('/api/services');
+            const response = await api.get('/services');
             setServices(response.data);
         } catch (error) {
             console.error('Error loading services:', error);
@@ -83,14 +83,14 @@ export default function ServicesScreen() {
         try {
             if (editingService) {
                 // Update existing service
-                await api.put(`/api/services/${editingService.id}`, {
+                await api.put(`/services/${editingService.id}`, {
                     name: formName,
                     price: price,
                 });
                 Alert.alert('✅ Actualizado', 'Servicio actualizado correctamente');
             } else {
                 // Create new service
-                await api.post('/api/services', {
+                await api.post('/services', {
                     name: formName,
                     price: price,
                 });
@@ -117,7 +117,7 @@ export default function ServicesScreen() {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            await api.delete(`/api/services/${service.id}`);
+                            await api.delete(`/services/${service.id}`);
                             Alert.alert('✅ Eliminado', 'Servicio eliminado correctamente');
                             fetchServices();
                         } catch (error) {

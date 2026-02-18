@@ -40,7 +40,7 @@ export default function TodayAgendaScreen() {
 
     const fetchAgenda = async () => {
         try {
-            const response = await api.get('/api/appointments/today');
+            const response = await api.get('/appointments/today');
             setAgenda(response.data);
         } catch (error) {
             console.error('Error fetching agenda:', error);
@@ -96,7 +96,7 @@ export default function TodayAgendaScreen() {
     const handleUpdateStatus = async (appointmentId: number, newStatus: string) => {
         try {
             setRefreshing(true);
-            await api.patch(`/api/appointments/${appointmentId}/status`, { status: newStatus });
+            await api.patch(`/appointments/${appointmentId}/status`, { status: newStatus });
 
             // Refresh the agenda to show updated status
             await fetchAgenda();

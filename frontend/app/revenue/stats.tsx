@@ -48,7 +48,7 @@ export default function RevenueStatsScreen() {
 
     const fetchStats = async () => {
         try {
-            const response = await api.get(`/api/appointments/revenue/stats?period=${period}`);
+            const response = await api.get(`/appointments/revenue/stats?period=${period}`);
             setStats(response.data);
         } catch (error) {
             console.error('Error fetching revenue stats:', error);
