@@ -3,7 +3,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, SafeAreaView, FlatList, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator, RefreshControl, KeyboardAvoidingView, Platform, } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
-import api from '../../src/services/api';
+import api from '@/services/api';
 import { formatPrice } from '../../src/utils/formatPrice';
 
 interface Service {

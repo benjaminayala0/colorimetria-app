@@ -3,7 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshContr
 import { useRouter, Stack } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { FontAwesome5 } from '@expo/vector-icons';
-import api from '../../src/services/api';
+import api from '@/services/api';
 import { formatPrice } from '../../src/utils/formatPrice';
 import { styles } from '../../src/styles/agenda-styles';
 
@@ -305,10 +305,10 @@ export default function TodayAgendaScreen() {
                             <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>✅ Completado</Text>
                         </View>
                         {/* Duration Badge */}
-                        {getDuration(item.time, item.completedAt) && (
+                        {getDuration(item.time, item.completedAt ?? null) && (
                             <View style={{ backgroundColor: '#2196f3', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 }}>
                                 <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>
-                                    ⏱️ {getDuration(item.time, item.completedAt)}
+                                    ⏱️ {getDuration(item.time, item.completedAt ?? null)}
                                 </Text>
                             </View>
                         )}

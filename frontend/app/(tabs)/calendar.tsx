@@ -7,7 +7,7 @@ import { Calendar, LocaleConfig } from 'react-native-calendars';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from 'expo-router';
 import * as Notifications from 'expo-notifications';
-import api from '../../src/services/api';
+import api from '@/services/api';
 import { formatPrice } from '../../src/utils/formatPrice';
 
 

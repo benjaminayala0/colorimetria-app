@@ -1,7 +1,7 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-const DEFAULT_URL = 'http://192.168.1.6:3000/api';
+const DEFAULT_URL = 'https://colorimetria-app.onrender.com';
 
 const api = axios.create({
     baseURL: DEFAULT_URL,

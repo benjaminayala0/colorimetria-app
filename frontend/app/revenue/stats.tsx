@@ -3,7 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshContr
 import { useRouter, Stack } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { FontAwesome5 } from '@expo/vector-icons';
-import api from '../../src/services/api';
+import api from '@/services/api';
 import { formatPrice } from '../../src/utils/formatPrice';
 import { styles } from '../../src/styles/revenue-styles';
 

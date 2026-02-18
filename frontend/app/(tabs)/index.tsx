@@ -4,7 +4,7 @@ import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import api from '../../src/services/api';
+import api from '@/services/api';
 import * as Contacts from 'expo-contacts';
 
 // Define the Client type

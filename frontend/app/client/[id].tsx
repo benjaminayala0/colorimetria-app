@@ -8,7 +8,7 @@ import { useState, useEffect, useCallback } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 import *as ImageManipulator from 'expo-image-manipulator'
-import api from '../../src/services/api';
+import api from '@/services/api';
 import { formatPrice } from '../../src/utils/formatPrice';
 import { useFocusEffect } from 'expo-router';
 
