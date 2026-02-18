@@ -4,6 +4,13 @@ const router = express.Router();
 const { register, login, getMe, getAllUsers, refreshToken } = require('../controllers/authController');
 const { protect, authenticate, authorize } = require('../middleware/auth'); // protect is alias for authenticate if needed, but we used authenticate
 const { validate } = require('../middleware/validate');
+const rateLimit = require('express-rate-limit');
+
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // Limit each IP to 5 login requests per windowMs
+    message: { success: false, error: 'Too many login attempts, please try again after 15 minutes' }
+});
 
 // Register User
 router.post(
@@ -25,6 +32,7 @@ router.post(
         check('password', 'Password is required').exists(),
         validate
     ],
+    loginLimiter,
     login
 );
 

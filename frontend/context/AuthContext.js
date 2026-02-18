@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import * as LocalAuthentication from 'expo-local-authentication';
 import api from '../services/api';
+import { useBiometrics } from '../hooks/useBiometrics';
 
 export const AuthContext = createContext();
 
@@ -10,6 +10,9 @@ export const AuthProvider = ({ children }) => {
     const [userToken, setUserToken] = useState(null);
     const [userInfo, setUserInfo] = useState(null);
     const [isBiometricVerified, setIsBiometricVerified] = useState(false);
+
+    // Use the new hook
+    const { authenticate } = useBiometrics();
 
     const isLoggedIn = async () => {
         try {
@@ -25,7 +28,7 @@ export const AuthProvider = ({ children }) => {
 
             setIsLoading(false);
         } catch (e) {
-            console.log(`isLogged in error ${e}`);
+
             setIsLoading(false);
         }
     };
@@ -42,7 +45,7 @@ export const AuthProvider = ({ children }) => {
                 password,
             });
 
-            console.log('Login successful', response.data);
+
 
             const token = response.data.accessToken;
             const user = response.data.user;
@@ -58,7 +61,7 @@ export const AuthProvider = ({ children }) => {
             setIsLoading(false);
             return { success: true };
         } catch (e) {
-            console.log(`Login error ${e}`);
+
             setIsLoading(false);
             return { success: false, error: e.response?.data?.error || 'Login failed' };
         }
@@ -73,7 +76,7 @@ export const AuthProvider = ({ children }) => {
                 password,
             });
 
-            console.log('Register successful', response.data);
+
 
             const token = response.data.accessToken;
             const user = response.data.user;
@@ -89,7 +92,7 @@ export const AuthProvider = ({ children }) => {
             setIsLoading(false);
             return { success: true };
         } catch (e) {
-            console.log(`Register error ${e}`);
+
             setIsLoading(false);
             return { success: false, error: e.response?.data?.error || 'Registration failed' };
         }
@@ -108,22 +111,7 @@ export const AuthProvider = ({ children }) => {
 
     const authenticateWithBiometrics = async () => {
         try {
-            const hasHardware = await LocalAuthentication.hasHardwareAsync();
-            if (!hasHardware) {
-                setIsBiometricVerified(true);
-                return true;
-            }
-
-            const isEnrolled = await LocalAuthentication.isEnrolledAsync();
-            if (!isEnrolled) {
-                setIsBiometricVerified(true);
-                return true;
-            }
-
-            const result = await LocalAuthentication.authenticateAsync({
-                promptMessage: 'Desbloquear Chroma',
-                fallbackLabel: 'Usar PIN',
-            });
+            const result = await authenticate('Desbloquear Chroma');
 
             if (result.success) {
                 setIsBiometricVerified(true);

@@ -24,7 +24,7 @@ function RootLayoutNav() {
     if (isLoading) return;
     if (!rootNavigationState?.key) return;
 
-    const inAuthGroup = segments[0] === '(auth)';
+    if (!rootNavigationState?.key) return;
 
     if (!userToken) {
       const isLoginPage = segments[0] === 'login';
