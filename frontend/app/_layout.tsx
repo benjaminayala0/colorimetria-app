@@ -59,10 +59,10 @@ function RootLayoutNav() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
         <Image
           source={require('../assets/images/v3.png')}
-          style={{ width: '100%', height: '100%', resizeMode: 'cover' }}
+          style={{ width: 450, height: 1150, resizeMode: 'contain' }}
         />
       </View>
     );
@@ -73,7 +73,7 @@ function RootLayoutNav() {
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
         <Image
           source={require('../assets/images/v3.png')}
-          style={{ width: 100, height: 100, marginBottom: 20, resizeMode: 'contain' }}
+          style={{ width: 300, height: 290, marginBottom: 20, resizeMode: 'contain' }}
         />
         <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 20 }}>Desbloquear App</Text>
         <TouchableOpacity
